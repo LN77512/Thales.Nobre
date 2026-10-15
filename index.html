@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THALES Information Systems - Inventário</title>
+    <link rel="stylesheet" href="style.css?v=1.3">
+</head>
+<body>
+
+    <!-- MODAL DE LOGIN -->
+    <div id="login-modal" class="login-overlay">
+        <div class="login-card">
+            <h2>THALES</h2>
+            <p class="login-subtitle">INFORMATION SYSTEMS<br>Insira suas credenciais para aceder</p>
+            
+            <form onsubmit="tentarLogin(event)">
+                <div class="input-group">
+                    <label for="usr-field">Nome de Utilizador / E-mail:</label>
+                    <input type="text" id="usr-field" required autocomplete="off" name="no_autofill_usr">
+                </div>
+                
+                <div class="input-group">
+                    <label for="pwd-field">Palavra-passe:</label>
+                    <input type="password" id="pwd-field" required autocomplete="off" name="no_autofill_pwd">
+                </div>
+                
+                <button type="submit" class="btn-login">Entrar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- APLICATIVO / INVENTÁRIO (Oculto até o login correto) -->
+    <div id="app-container" class="app-container" style="display: none;">
+        <header>
+            <h1>THALES Information Systems - Inventário</h1>
+        </header>
+
+        <main>
+            <!-- Formulário de Registo / Adição e Edição -->
+            <form id="inventory-form" onsubmit="salvarItem(event)" class="form-container">
+                <input type="hidden" id="item-id">
+                <input type="text" id="nome" placeholder="Nome do Equipamento" required autocomplete="off" name="item_name_rand">
+                <input type="number" id="quantidade" placeholder="Quantidade" required min="1" autocomplete="off" name="item_qty_rand">
+                <select id="status" required>
+                    <option value="" disabled selected>Selecione o Status</option>
+                    <option value="Disponível">Disponível</option>
+                    <option value="Em Uso">Em Uso</option>
+                    <option value="Manutenção">Manutenção</option>
+                </select>
+                <input type="text" id="responsavel" placeholder="Responsável" required autocomplete="off" name="item_resp_rand">
+                <button type="submit" id="btn-submit" class="btn-adicionar">Adicionar</button>
+            </form>
+
+            <!-- Tabela de Inventário -->
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Quantidade</th>
+                            <th>Status</th>
+                            <th>Responsável</th>
+                            <th>Data</th>
+                            <th>Hora</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventory-body">
+                        <!-- Os dados serão injetados dinamicamente via script.js -->
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js?v=1.3"></script>
+</body>
+</html>
