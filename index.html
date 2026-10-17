@@ -114,7 +114,7 @@
         .form-container {
           display: flex;
           gap: 10px;
-          margin-bottom: 25px;
+          margin-bottom: 20px;
           flex-wrap: wrap;
           background-color: #f8f9fa;
           padding: 15px;
@@ -125,7 +125,7 @@
         .form-container input,
         .form-container select {
           flex: 1;
-          min-width: 180px;
+          min-width: 160px;
           padding: 10px 12px;
           border: 1px solid #ccc;
           border-radius: 4px;
@@ -134,8 +134,8 @@
         }
 
         #nome {
-          flex: 1.5;
-          min-width: 210px;
+          flex: 1.6;
+          min-width: 220px;
         }
 
         .btn-adicionar {
@@ -151,6 +151,23 @@
 
         .btn-adicionar:hover {
           background-color: #218838;
+        }
+
+        /* BARRA DE PESQUISA / FILTRO */
+        .filter-container {
+          margin-bottom: 15px;
+          display: flex;
+          justify-content: flex-end;
+        }
+
+        .filter-container input {
+          width: 100%;
+          max-width: 320px;
+          padding: 10px 12px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-size: 0.9em;
+          box-sizing: border-box;
         }
 
         /* TABELA DE INVENTÁRIO */
@@ -264,6 +281,11 @@
                 <input type="text" id="responsavel" placeholder="Responsável" required autocomplete="off">
                 <button type="submit" id="btn-submit" class="btn-adicionar">Adicionar</button>
             </form>
+
+            <!-- Campo de Pesquisa / Filtro -->
+            <div class="filter-container">
+                <input type="text" id="search-input" onkeyup="filtrarTabela()" placeholder="🔍 Pesquisar em qualquer coluna..." autocomplete="off">
+            </div>
 
             <!-- Tabela de Inventário -->
             <div class="table-responsive">

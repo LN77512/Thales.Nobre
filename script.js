@@ -49,6 +49,23 @@ function carregarItens() {
     .catch(error => console.error("Erro ao carregar itens do SheetDB:", error));
 }
 
+// Função para Filtrar a Tabela em tempo real
+function filtrarTabela() {
+  const input = document.getElementById("search-input");
+  const filter = input.value.toLowerCase();
+  const tbody = document.getElementById("inventory-body");
+  const linhas = tbody.getElementsByTagName("tr");
+
+  for (let i = 0; i < linhas.length; i++) {
+    const textoLinha = linhas[i].textContent || linhas[i].innerText;
+    if (textoLinha.toLowerCase().indexOf(filter) > -1) {
+      linhas[i].style.display = "";
+    } else {
+      linhas[i].style.display = "none";
+    }
+  }
+}
+
 // Auxiliar para evitar problemas de aspas na função de edição
 function escapeHtml(str) {
   if (!str) return "";
