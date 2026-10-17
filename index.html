@@ -153,15 +153,18 @@
           background-color: #218838;
         }
 
-        /* CAMPO DE PESQUISA / FILTRO */
-        .filter-container {
+        /* BARRA DE PESQUISA E EXPORTAÇÃO */
+        .toolbar-container {
           margin-bottom: 15px;
           display: flex;
-          justify-content: flex-end;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
         }
 
-        .filter-container input {
-          width: 100%;
+        .toolbar-container input {
+          flex: 1;
           max-width: 350px;
           padding: 10px 14px;
           border: 2px solid #002b5c;
@@ -171,8 +174,41 @@
           outline: none;
         }
 
-        .filter-container input:focus {
-          box-shadow: 0 0 5px rgba(0, 43, 92, 0.4);
+        .export-buttons {
+          display: flex;
+          gap: 8px;
+        }
+
+        .btn-excel {
+          background-color: #1d6f42;
+          color: white;
+          border: none;
+          padding: 10px 14px;
+          border-radius: 5px;
+          font-weight: bold;
+          font-size: 0.88em;
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+
+        .btn-excel:hover {
+          background-color: #155231;
+        }
+
+        .btn-pdf {
+          background-color: #dc3545;
+          color: white;
+          border: none;
+          padding: 10px 14px;
+          border-radius: 5px;
+          font-weight: bold;
+          font-size: 0.88em;
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+
+        .btn-pdf:hover {
+          background-color: #b02a37;
         }
 
         /* TABELA DE INVENTÁRIO */
@@ -236,6 +272,36 @@
         .btn-remover:hover {
           background-color: #c82333;
         }
+
+        /* CONFIGURAÇÃO PARA IMPRESSÃO / GERAR PDF NATIVO */
+        @media print {
+          body {
+            background-color: #ffffff !important;
+            color: #000 !important;
+          }
+          .login-overlay, .form-container, .toolbar-container, .btn-editar, .btn-remover, th:last-child, td:last-child {
+            display: none !important;
+          }
+          .app-container {
+            box-shadow: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            max-width: 100% !important;
+          }
+          table {
+            border: 1px solid #000;
+          }
+          th {
+            background-color: #002b5c !important;
+            color: #fff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          td, th {
+            padding: 8px !important;
+            border: 1px solid #ccc !important;
+          }
+        }
     </style>
 </head>
 <body>
@@ -287,9 +353,13 @@
                 <button type="submit" id="btn-submit" class="btn-adicionar">Adicionar</button>
             </form>
 
-            <!-- Campo de Pesquisa / Filtro -->
-            <div class="filter-container">
+            <!-- Barra de Ferramentas: Pesquisa e Exportações -->
+            <div class="toolbar-container">
                 <input type="text" id="search-input" placeholder="🔍 Pesquisar em qualquer coluna..." autocomplete="off">
+                <div class="export-buttons">
+                    <button type="button" onclick="exportarExcel()" class="btn-excel">📊 Exportar Excel</button>
+                    <button type="button" onclick="exportarPDF()" class="btn-pdf">📄 Exportar PDF</button>
+                </div>
             </div>
 
             <!-- Tabela de Inventário -->
@@ -306,7 +376,7 @@
                             <th>Responsável</th>
                             <th>Data</th>
                             <th>Hora</th>
-                            <th>Ações</th>
+                            <th class="col-acoes">Ações</th>
                         </tr>
                     </thead>
                     <tbody id="inventory-body">
@@ -317,6 +387,6 @@
         </main>
     </div>
 
-    <script src="script.js?v=2.1"></script>
+    <script src="script.js?v=2.3"></script>
 </body>
 </html>

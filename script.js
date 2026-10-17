@@ -37,7 +37,7 @@ function carregarItens() {
             <td>${item.responsavel || ""}</td>
             <td>${item.data || ""}</td>
             <td>${item.hora || ""}</td>
-            <td>
+            <td class="col-acoes">
               <button class="btn-editar" onclick="prepararEdicao('${item.id}', '${escapeHtml(item.nome)}', '${escapeHtml(item.marca)}', '${escapeHtml(item.modelo)}', '${item.quantidade}', '${item.quantidade_estoque}', '${item.status}', '${escapeHtml(item.responsavel)}')">Editar</button>
               <button class="btn-remover" onclick="removerItem('${item.id}')">Remover</button>
             </td>
@@ -83,6 +83,56 @@ document.addEventListener("DOMContentLoaded", () => {
     searchInput.addEventListener("keyup", filtrarTabela);
   }
 });
+
+// Exporta os itens visíveis para ficheiro de Excel (.csv formatado para Excel)
+function exportarExcel() {
+  const tbody = document.getElementById("inventory-body");
+  const linhas = tbody.getElementsByTagName("tr");
+  
+  if (linhas.length === 0) {
+    alert("Não existem dados para exportar.");
+    return;
+  }
+
+  let conteudoCSV = [];
+  const cabecalhos = ["Nome", "Marca", "Modelo", "Quantidade", "Estoque Total", "Status", "Responsável", "Data", "Hora"];
+  conteudoCSV.push(cabecalhos.map(h => `"${h}"`).join(";"));
+
+  let temDadosVisiveis = false;
+  for (let i = 0; i < linhas.length; i++) {
+    if (linhas[i].style.display !== "none") {
+      temDadosVisiveis = true;
+      const colunas = linhas[i].getElementsByTagName("td");
+      let linhaDados = [];
+      
+      for (let j = 0; j < colunas.length - 1; j++) {
+        let texto = colunas[j].textContent.trim().replace(/"/g, '""');
+        linhaDados.push(`"${texto}"`);
+      }
+      conteudoCSV.push(linhaDados.join(";"));
+    }
+  }
+
+  if (!temDadosVisiveis) {
+    alert("Nenhum item visível com o filtro atual para exportar.");
+    return;
+  }
+
+  const csvBlob = new Blob(["\uFEFF" + conteudoCSV.join("\n")], { type: "text/csv;charset=utf-8;" });
+  const dataFormatada = new Date().toISOString().slice(0, 10);
+  const linkDownload = document.createElement("a");
+  
+  linkDownload.href = URL.createObjectURL(csvBlob);
+  linkDownload.setAttribute("download", `Inventario_${dataFormatada}.csv`);
+  document.body.appendChild(linkDownload);
+  linkDownload.click();
+  document.body.removeChild(linkDownload);
+}
+
+// Gera o PDF imprimindo diretamente a tabela formatada (com opção de Salvar como PDF)
+function exportarPDF() {
+  window.print();
+}
 
 // Auxiliar para evitar problemas de aspas na função de edição
 function escapeHtml(str) {
