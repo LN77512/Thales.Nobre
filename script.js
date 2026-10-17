@@ -29,13 +29,15 @@ function carregarItens() {
           const tr = document.createElement("tr");
           tr.innerHTML = `
             <td>${item.nome || ""}</td>
+            <td>${item.marca || ""}</td>
+            <td>${item.modelo || ""}</td>
             <td>${item.quantidade || ""}</td>
             <td>${item.status || ""}</td>
             <td>${item.responsavel || ""}</td>
             <td>${item.data || ""}</td>
             <td>${item.hora || ""}</td>
             <td>
-              <button class="btn-editar" onclick="prepararEdicao('${item.id}', '${item.nome}', '${item.quantidade}', '${item.status}', '${item.responsavel}')">Editar</button>
+              <button class="btn-editar" onclick="prepararEdicao('${item.id}', '${escapeHtml(item.nome)}', '${escapeHtml(item.marca)}', '${escapeHtml(item.modelo)}', '${item.quantidade}', '${item.status}', '${escapeHtml(item.responsavel)}')">Editar</button>
               <button class="btn-remover" onclick="removerItem('${item.id}')">Remover</button>
             </td>
           `;
@@ -46,12 +48,20 @@ function carregarItens() {
     .catch(error => console.error("Erro ao carregar itens do SheetDB:", error));
 }
 
-// Adicionar ou Atualizar item com Data e Hora em colunas separadas (POST / PUT)
+// Auxiliar para evitar problemas de aspas na função de edição
+function escapeHtml(str) {
+  if (!str) return "";
+  return str.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+}
+
+// Adicionar ou Atualizar item com Marca e Modelo (POST / PUT)
 function salvarItem(event) {
   event.preventDefault();
 
   const idExistente = document.getElementById("item-id").value;
   const nome = document.getElementById("nome").value;
+  const marca = document.getElementById("marca").value;
+  const modelo = document.getElementById("modelo").value;
   const quantidade = document.getElementById("quantidade").value;
   const status = document.getElementById("status").value;
   const responsavel = document.getElementById("responsavel").value;
@@ -71,6 +81,8 @@ function salvarItem(event) {
       body: JSON.stringify({
         data: {
           nome: nome,
+          marca: marca,
+          modelo: modelo,
           quantidade: quantidade,
           status: status,
           responsavel: responsavel,
@@ -81,10 +93,7 @@ function salvarItem(event) {
     })
     .then(response => response.json())
     .then(() => {
-      document.getElementById("inventory-form").reset();
-      document.getElementById("item-id").value = "";
-      document.getElementById("btn-submit").textContent = "Adicionar";
-      document.getElementById("btn-submit").style.backgroundColor = "#28a745";
+      resetarFormulario();
       carregarItens();
     })
     .catch(error => console.error("Erro ao atualizar item:", error));
@@ -97,6 +106,8 @@ function salvarItem(event) {
       data: {
         id: novoId,
         nome: nome,
+        marca: marca,
+        modelo: modelo,
         quantidade: quantidade,
         status: status,
         responsavel: responsavel,
@@ -115,7 +126,7 @@ function salvarItem(event) {
     })
     .then(response => response.json())
     .then(() => {
-      document.getElementById("inventory-form").reset();
+      resetarFormulario();
       carregarItens();
     })
     .catch(error => console.error("Erro ao salvar item:", error));
@@ -123,9 +134,11 @@ function salvarItem(event) {
 }
 
 // Preencher o formulário com os dados para edição
-function prepararEdicao(id, nome, quantidade, status, responsavel) {
+function prepararEdicao(id, nome, marca, modelo, quantidade, status, responsavel) {
   document.getElementById("item-id").value = id;
   document.getElementById("nome").value = nome;
+  document.getElementById("marca").value = marca !== 'undefined' ? marca : '';
+  document.getElementById("modelo").value = modelo !== 'undefined' ? modelo : '';
   document.getElementById("quantidade").value = quantidade;
   document.getElementById("status").value = status;
   document.getElementById("responsavel").value = responsavel;
@@ -134,6 +147,15 @@ function prepararEdicao(id, nome, quantidade, status, responsavel) {
   btnSubmit.textContent = "Atualizar";
   btnSubmit.style.backgroundColor = "#ffc107";
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Limpar formulário e restaurar botão
+function resetarFormulario() {
+  document.getElementById("inventory-form").reset();
+  document.getElementById("item-id").value = "";
+  const btnSubmit = document.getElementById("btn-submit");
+  btnSubmit.textContent = "Adicionar";
+  btnSubmit.style.backgroundColor = "#28a745";
 }
 
 // Remover um item pelo ID (DELETE)

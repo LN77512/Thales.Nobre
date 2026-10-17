@@ -87,7 +87,7 @@ body {
 
 /* APLICATIVO / INVENTÁRIO */
 .app-container {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 30px auto;
   padding: 20px;
   background-color: #ffffff;
@@ -103,6 +103,7 @@ header h1 {
   padding-bottom: 10px;
 }
 
+/* FORMULÁRIO DE REGISTO */
 .form-container {
   display: flex;
   gap: 10px;
@@ -117,11 +118,11 @@ header h1 {
 .form-container input,
 .form-container select {
   flex: 1;
-  min-width: 140px;
+  min-width: 120px;
   padding: 10px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  font-size: 0.95em;
+  font-size: 0.9em;
 }
 
 .btn-adicionar {
@@ -139,6 +140,7 @@ header h1 {
   background-color: #218838;
 }
 
+/* TABELA DE INVENTÁRIO */
 .table-responsive {
   overflow-x: auto;
 }
@@ -151,20 +153,23 @@ table {
 }
 
 th, td {
-  padding: 12px 15px;
+  padding: 12px 12px;
   border-bottom: 1px solid #ddd;
+  font-size: 0.95em;
 }
 
 th {
   background-color: #343a40;
   color: white;
   font-weight: bold;
+  white-space: nowrap;
 }
 
 tr:hover {
   background-color: #f1f1f1;
 }
 
+/* BOTÕES DE AÇÃO */
 .btn-editar {
   background-color: #ffc107;
   color: #333;
