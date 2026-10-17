@@ -31,13 +31,14 @@ function carregarItens() {
             <td>${item.nome || ""}</td>
             <td>${item.marca || ""}</td>
             <td>${item.modelo || ""}</td>
-            <td>${item.quantidade || ""}</td>
+            <td>${item.quantidade || "0"}</td>
+            <td>${item.quantidade_estoque || "0"}</td>
             <td>${item.status || ""}</td>
             <td>${item.responsavel || ""}</td>
             <td>${item.data || ""}</td>
             <td>${item.hora || ""}</td>
             <td>
-              <button class="btn-editar" onclick="prepararEdicao('${item.id}', '${escapeHtml(item.nome)}', '${escapeHtml(item.marca)}', '${escapeHtml(item.modelo)}', '${item.quantidade}', '${item.status}', '${escapeHtml(item.responsavel)}')">Editar</button>
+              <button class="btn-editar" onclick="prepararEdicao('${item.id}', '${escapeHtml(item.nome)}', '${escapeHtml(item.marca)}', '${escapeHtml(item.modelo)}', '${item.quantidade}', '${item.quantidade_estoque}', '${item.status}', '${escapeHtml(item.responsavel)}')">Editar</button>
               <button class="btn-remover" onclick="removerItem('${item.id}')">Remover</button>
             </td>
           `;
@@ -54,7 +55,7 @@ function escapeHtml(str) {
   return str.replace(/'/g, "\\'").replace(/"/g, "&quot;");
 }
 
-// Adicionar ou Atualizar item com Marca e Modelo (POST / PUT)
+// Adicionar ou Atualizar item (POST / PUT)
 function salvarItem(event) {
   event.preventDefault();
 
@@ -63,6 +64,7 @@ function salvarItem(event) {
   const marca = document.getElementById("marca").value;
   const modelo = document.getElementById("modelo").value;
   const quantidade = document.getElementById("quantidade").value;
+  const quantidadeEstoque = document.getElementById("quantidade_estoque").value;
   const status = document.getElementById("status").value;
   const responsavel = document.getElementById("responsavel").value;
   
@@ -84,6 +86,7 @@ function salvarItem(event) {
           marca: marca,
           modelo: modelo,
           quantidade: quantidade,
+          quantidade_estoque: quantidadeEstoque,
           status: status,
           responsavel: responsavel,
           data: dataAtual,
@@ -109,6 +112,7 @@ function salvarItem(event) {
         marca: marca,
         modelo: modelo,
         quantidade: quantidade,
+        quantidade_estoque: quantidadeEstoque,
         status: status,
         responsavel: responsavel,
         data: dataAtual,
@@ -134,12 +138,13 @@ function salvarItem(event) {
 }
 
 // Preencher o formulário com os dados para edição
-function prepararEdicao(id, nome, marca, modelo, quantidade, status, responsavel) {
+function prepararEdicao(id, nome, marca, modelo, quantidade, quantidadeEstoque, status, responsavel) {
   document.getElementById("item-id").value = id;
   document.getElementById("nome").value = nome;
   document.getElementById("marca").value = marca !== 'undefined' ? marca : '';
   document.getElementById("modelo").value = modelo !== 'undefined' ? modelo : '';
   document.getElementById("quantidade").value = quantidade;
+  document.getElementById("quantidade_estoque").value = quantidadeEstoque !== 'undefined' ? quantidadeEstoque : '0';
   document.getElementById("status").value = status;
   document.getElementById("responsavel").value = responsavel;
 

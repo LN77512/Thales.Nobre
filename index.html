@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>THALES Information Systems - Inventário</title>
-    <link rel="stylesheet" href="style.css?v=1.4">
+    <link rel="stylesheet" href="estilo.css?v=1.5">
 </head>
 <body>
 
@@ -40,17 +40,18 @@
             <!-- Formulário de Registo / Adição e Edição -->
             <form id="inventory-form" onsubmit="salvarItem(event)" class="form-container">
                 <input type="hidden" id="item-id">
-                <input type="text" id="nome" placeholder="Nome do Equipamento" required autocomplete="off" name="item_name_rand">
-                <input type="text" id="marca" placeholder="Marca" required autocomplete="off" name="item_brand_rand">
-                <input type="text" id="modelo" placeholder="Modelo" required autocomplete="off" name="item_model_rand">
-                <input type="number" id="quantidade" placeholder="Quantidade" required min="1" autocomplete="off" name="item_qty_rand">
+                <input type="text" id="nome" placeholder="Nome do Equipamento" required autocomplete="off">
+                <input type="text" id="marca" placeholder="Marca" required autocomplete="off">
+                <input type="text" id="modelo" placeholder="Modelo" required autocomplete="off">
+                <input type="number" id="quantidade" placeholder="Qtd. Atual" required min="0" autocomplete="off">
+                <input type="number" id="quantidade_estoque" placeholder="Qtd. em Estoque" required min="0" autocomplete="off">
                 <select id="status" required>
                     <option value="" disabled selected>Selecione o Status</option>
                     <option value="Disponível">Disponível</option>
                     <option value="Em Uso">Em Uso</option>
                     <option value="Manutenção">Manutenção</option>
                 </select>
-                <input type="text" id="responsavel" placeholder="Responsável" required autocomplete="off" name="item_resp_rand">
+                <input type="text" id="responsavel" placeholder="Responsável" required autocomplete="off">
                 <button type="submit" id="btn-submit" class="btn-adicionar">Adicionar</button>
             </form>
 
@@ -62,7 +63,8 @@
                             <th>Nome</th>
                             <th>Marca</th>
                             <th>Modelo</th>
-                            <th>Quantidade</th>
+                            <th>Qtd. Atual</th>
+                            <th>Qtd. em Estoque</th>
                             <th>Status</th>
                             <th>Responsável</th>
                             <th>Data</th>
@@ -78,6 +80,6 @@
         </main>
     </div>
 
-    <script src="script.js?v=1.4"></script>
+    <script src="script.js?v=1.5"></script>
 </body>
 </html>
