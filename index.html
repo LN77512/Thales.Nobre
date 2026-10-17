@@ -4,7 +4,211 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>THALES Information Systems - Inventário</title>
-    <link rel="stylesheet" href="estilo.css?v=1.6">
+    <style>
+        /* Estilos Gerais */
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #002b5c;
+          margin: 0;
+          padding: 0;
+          color: #333;
+        }
+
+        /* MODAL DE LOGIN */
+        .login-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: #002b5c;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          z-index: 9999;
+        }
+
+        .login-card {
+          background-color: #ffffff;
+          padding: 30px 40px;
+          border-radius: 10px;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+          width: 100%;
+          max-width: 400px;
+          text-align: center;
+        }
+
+        .login-card h2 {
+          color: #002b5c;
+          margin-bottom: 5px;
+          font-size: 1.8em;
+          letter-spacing: 1px;
+        }
+
+        .login-subtitle {
+          color: #666;
+          font-size: 0.85em;
+          margin-bottom: 25px;
+          line-height: 1.4;
+        }
+
+        .input-group {
+          margin-bottom: 15px;
+          text-align: left;
+        }
+
+        .input-group label {
+          display: block;
+          font-weight: bold;
+          color: #333;
+          margin-bottom: 5px;
+          font-size: 0.9em;
+        }
+
+        .input-group input {
+          width: 100%;
+          padding: 10px;
+          border: 1px solid #ccc;
+          border-radius: 5px;
+          box-sizing: border-box;
+          font-size: 1em;
+        }
+
+        .btn-login {
+          width: 100%;
+          padding: 12px;
+          background-color: #002b5c;
+          color: #fff;
+          border: none;
+          border-radius: 5px;
+          font-size: 1em;
+          font-weight: bold;
+          cursor: pointer;
+          margin-top: 10px;
+          transition: background-color 0.2s;
+        }
+
+        .btn-login:hover {
+          background-color: #001a38;
+        }
+
+        /* APLICATIVO / INVENTÁRIO */
+        .app-container {
+          max-width: 1350px;
+          margin: 30px auto;
+          padding: 20px;
+          background-color: #ffffff;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        header h1 {
+          color: #002b5c;
+          font-size: 1.6em;
+          margin-bottom: 25px;
+          border-bottom: 2px solid #eaeaea;
+          padding-bottom: 10px;
+        }
+
+        /* FORMULÁRIO DE REGISTO */
+        .form-container {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 25px;
+          flex-wrap: wrap;
+          background-color: #f8f9fa;
+          padding: 15px;
+          border-radius: 6px;
+          border: 1px solid #e0e0e0;
+        }
+
+        .form-container input,
+        .form-container select {
+          flex: 1;
+          min-width: 110px;
+          padding: 10px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-size: 0.9em;
+        }
+
+        .btn-adicionar {
+          background-color: #28a745;
+          color: white;
+          border: none;
+          padding: 10px 20px;
+          border-radius: 4px;
+          font-weight: bold;
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+
+        .btn-adicionar:hover {
+          background-color: #218838;
+        }
+
+        /* TABELA DE INVENTÁRIO */
+        .table-responsive {
+          overflow-x: auto;
+        }
+
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 10px;
+          text-align: left;
+        }
+
+        th, td {
+          padding: 12px 10px;
+          border-bottom: 1px solid #ddd;
+          font-size: 0.9em;
+        }
+
+        th {
+          background-color: #343a40;
+          color: white;
+          font-weight: bold;
+          white-space: nowrap;
+        }
+
+        tr:hover {
+          background-color: #f1f1f1;
+        }
+
+        /* BOTÕES DE AÇÃO */
+        .btn-editar {
+          background-color: #ffc107;
+          color: #333;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.85em;
+          font-weight: bold;
+          margin-right: 5px;
+          transition: background-color 0.2s;
+        }
+
+        .btn-editar:hover {
+          background-color: #e0a800;
+        }
+
+        .btn-remover {
+          background-color: #dc3545;
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.85em;
+          transition: background-color 0.2s;
+        }
+
+        .btn-remover:hover {
+          background-color: #c82333;
+        }
+    </style>
 </head>
 <body>
 
@@ -80,6 +284,6 @@
         </main>
     </div>
 
-    <script src="script.js?v=1.6"></script>
+    <script src="script.js"></script>
 </body>
 </html>
