@@ -159,13 +159,13 @@
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 10px;
-          flex-wrap: wrap;
+          gap: 15px;
+          flex-wrap: nowrap;
         }
 
         .toolbar-container input {
-          flex: 1;
-          max-width: 350px;
+          width: 350px;
+          min-width: 250px;
           padding: 10px 14px;
           border: 2px solid #002b5c;
           border-radius: 5px;
@@ -177,6 +177,7 @@
         .export-buttons {
           display: flex;
           gap: 8px;
+          white-space: nowrap;
         }
 
         .btn-excel {
@@ -273,13 +274,18 @@
           background-color: #c82333;
         }
 
-        /* CONFIGURAÇÃO PARA IMPRESSÃO / GERAR PDF NATIVO */
+        /* REGRAS PARA IMPRESSÃO EM PAISAGEM (A4 LANDSCAPE) */
+        @page {
+          size: A4 landscape;
+          margin: 10mm;
+        }
+
         @media print {
           body {
             background-color: #ffffff !important;
             color: #000 !important;
           }
-          .login-overlay, .form-container, .toolbar-container, .btn-editar, .btn-remover, th:last-child, td:last-child {
+          .login-overlay, .form-container, .toolbar-container, .col-acoes, td:last-child, th:last-child {
             display: none !important;
           }
           .app-container {
@@ -288,18 +294,25 @@
             padding: 0 !important;
             max-width: 100% !important;
           }
+          .table-responsive {
+            overflow: visible !important;
+          }
           table {
-            border: 1px solid #000;
+            width: 100% !important;
+            border-collapse: collapse !important;
+            table-layout: fixed !important;
+          }
+          th, td {
+            font-size: 10px !important;
+            padding: 6px 4px !important;
+            border: 1px solid #444 !important;
+            word-wrap: break-word !important;
           }
           th {
             background-color: #002b5c !important;
-            color: #fff !important;
+            color: #ffffff !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
-          }
-          td, th {
-            padding: 8px !important;
-            border: 1px solid #ccc !important;
           }
         }
     </style>
@@ -387,6 +400,6 @@
         </main>
     </div>
 
-    <script src="script.js?v=2.3"></script>
+    <script src="script.js?v=2.4"></script>
 </body>
 </html>

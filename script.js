@@ -129,9 +129,79 @@ function exportarExcel() {
   document.body.removeChild(linkDownload);
 }
 
-// Gera o PDF imprimindo diretamente a tabela formatada (com opção de Salvar como PDF)
+// Gera relatório em PDF limpo e ajustado em orientação Paisagem
 function exportarPDF() {
-  window.print();
+  const tbody = document.getElementById("inventory-body");
+  const linhas = tbody.getElementsByTagName("tr");
+  let linhasHTML = "";
+
+  for (let i = 0; i < linhas.length; i++) {
+    if (linhas[i].style.display !== "none") {
+      const tds = linhas[i].getElementsByTagName("td");
+      linhasHTML += "<tr>";
+      for (let j = 0; j < tds.length - 1; j++) {
+        linhasHTML += `<td>${tds[j].textContent.trim()}</td>`;
+      }
+      linhasHTML += "</tr>";
+    }
+  }
+
+  if (!linhasHTML) {
+    alert("Nenhum item visível para gerar o PDF.");
+    return;
+  }
+
+  const janelaPDF = window.open("", "_blank");
+  const dataAtual = new Date().toLocaleDateString("pt-BR");
+
+  janelaPDF.document.write(`
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+      <meta charset="UTF-8">
+      <title>Relatório de Inventário - THALES</title>
+      <style>
+        @page { size: A4 landscape; margin: 10mm; }
+        body { font-family: Arial, sans-serif; margin: 15px; color: #333; }
+        h1 { color: #002b5c; font-size: 1.5em; margin-bottom: 5px; }
+        p { font-size: 0.85em; color: #666; margin-bottom: 15px; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { border: 1px solid #ccc; padding: 6px 8px; font-size: 11px; text-align: left; word-wrap: break-word; }
+        th { background-color: #002b5c; color: white; font-weight: bold; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+      </style>
+    </head>
+    <body>
+      <h1>THALES Information Systems - Relatório de Inventário</h1>
+      <p>Gerado em: ${dataAtual}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Marca</th>
+            <th>Modelo</th>
+            <th>Qtd</th>
+            <th>Estoque</th>
+            <th>Status</th>
+            <th>Responsável</th>
+            <th>Data</th>
+            <th>Hora</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${linhasHTML}
+        </tbody>
+      </table>
+      <script>
+        window.onload = function() {
+          window.print();
+          setTimeout(function() { window.close(); }, 500);
+        };
+      </script>
+    </body>
+    </html>
+  `);
+  janelaPDF.document.close();
 }
 
 // Auxiliar para evitar problemas de aspas na função de edição
