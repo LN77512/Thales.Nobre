@@ -153,7 +153,7 @@
           background-color: #218838;
         }
 
-        /* BARRA DE PESQUISA / FILTRO */
+        /* CAMPO DE PESQUISA / FILTRO */
         .filter-container {
           margin-bottom: 15px;
           display: flex;
@@ -162,12 +162,17 @@
 
         .filter-container input {
           width: 100%;
-          max-width: 320px;
-          padding: 10px 12px;
-          border: 1px solid #ccc;
-          border-radius: 4px;
-          font-size: 0.9em;
+          max-width: 350px;
+          padding: 10px 14px;
+          border: 2px solid #002b5c;
+          border-radius: 5px;
+          font-size: 0.95em;
           box-sizing: border-box;
+          outline: none;
+        }
+
+        .filter-container input:focus {
+          box-shadow: 0 0 5px rgba(0, 43, 92, 0.4);
         }
 
         /* TABELA DE INVENTÁRIO */
@@ -284,7 +289,7 @@
 
             <!-- Campo de Pesquisa / Filtro -->
             <div class="filter-container">
-                <input type="text" id="search-input" onkeyup="filtrarTabela()" placeholder="🔍 Pesquisar em qualquer coluna..." autocomplete="off">
+                <input type="text" id="search-input" placeholder="🔍 Pesquisar em qualquer coluna..." autocomplete="off">
             </div>
 
             <!-- Tabela de Inventário -->
@@ -312,6 +317,6 @@
         </main>
     </div>
 
-    <script src="script.js"></script>
+    <script src="script.js?v=2.1"></script>
 </body>
 </html>

@@ -45,26 +45,44 @@ function carregarItens() {
           tbody.appendChild(tr);
         });
       }
+      
+      // Reaplica o filtro caso haja texto digitado na pesquisa
+      filtrarTabela();
     })
     .catch(error => console.error("Erro ao carregar itens do SheetDB:", error));
 }
 
-// Função para Filtrar a Tabela em tempo real
+// Função para filtrar a tabela em tempo real ignorando acentos e maiúsculas
 function filtrarTabela() {
   const input = document.getElementById("search-input");
-  const filter = input.value.toLowerCase();
+  if (!input) return;
+
+  const termo = input.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   const tbody = document.getElementById("inventory-body");
   const linhas = tbody.getElementsByTagName("tr");
 
   for (let i = 0; i < linhas.length; i++) {
-    const textoLinha = linhas[i].textContent || linhas[i].innerText;
-    if (textoLinha.toLowerCase().indexOf(filter) > -1) {
+    const textoLinha = (linhas[i].textContent || linhas[i].innerText)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    if (textoLinha.includes(termo)) {
       linhas[i].style.display = "";
     } else {
       linhas[i].style.display = "none";
     }
   }
 }
+
+// Ativa a pesquisa em tempo real assim que o utilizador digita
+document.addEventListener("DOMContentLoaded", () => {
+  const searchInput = document.getElementById("search-input");
+  if (searchInput) {
+    searchInput.addEventListener("input", filtrarTabela);
+    searchInput.addEventListener("keyup", filtrarTabela);
+  }
+});
 
 // Auxiliar para evitar problemas de aspas na função de edição
 function escapeHtml(str) {
