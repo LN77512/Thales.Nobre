@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>THALES Information Systems - Inventário</title>
+    <!-- Biblioteca leve para exportação em Excel nativo (.xlsx) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         /* Estilos Gerais */
         body {
@@ -14,7 +16,7 @@
           color: #333;
         }
 
-        /* MODAL DE LOGIN */
+        /* MODAIS DE LOGIN E TROCA DE SENHA */
         .login-overlay {
           position: fixed;
           top: 0;
@@ -102,12 +104,71 @@
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
 
+        header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 2px solid #eaeaea;
+          padding-bottom: 10px;
+          margin-bottom: 25px;
+        }
+
         header h1 {
           color: #002b5c;
           font-size: 1.6em;
-          margin-bottom: 25px;
-          border-bottom: 2px solid #eaeaea;
-          padding-bottom: 10px;
+          margin: 0;
+        }
+
+        .user-badge {
+          font-size: 0.9em;
+          color: #555;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .btn-logout {
+          background-color: #6c757d;
+          color: white;
+          border: none;
+          padding: 6px 12px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 0.85em;
+        }
+
+        /* NAVEGAÇÃO ENTRE INVENTÁRIO E HISTÓRICO */
+        .nav-tabs {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+
+        .tab-btn {
+          padding: 10px 20px;
+          background-color: #e9ecef;
+          border: none;
+          border-radius: 5px;
+          cursor: pointer;
+          font-weight: bold;
+          color: #495057;
+        }
+
+        .tab-btn.active {
+          background-color: #002b5c;
+          color: white;
+        }
+
+        /* ALERTAS DE ESTOQUE MÍNIMO */
+        .alerta-estoque {
+          background-color: #f8d7da;
+          color: #842029;
+          border: 1px solid #f5c2c7;
+          padding: 12px;
+          border-radius: 6px;
+          margin-bottom: 20px;
+          font-size: 0.9em;
+          display: none;
         }
 
         /* FORMULÁRIO DE REGISTO */
@@ -189,11 +250,6 @@
           font-weight: bold;
           font-size: 0.88em;
           cursor: pointer;
-          transition: background-color 0.2s;
-        }
-
-        .btn-excel:hover {
-          background-color: #155231;
         }
 
         .btn-pdf {
@@ -205,14 +261,9 @@
           font-weight: bold;
           font-size: 0.88em;
           cursor: pointer;
-          transition: background-color 0.2s;
         }
 
-        .btn-pdf:hover {
-          background-color: #b02a37;
-        }
-
-        /* TABELA DE INVENTÁRIO */
+        /* TABELA */
         .table-responsive {
           overflow-x: auto;
         }
@@ -241,6 +292,20 @@
           background-color: #f1f1f1;
         }
 
+        /* DESTAQUE DE CRÍTICO NA TABELA */
+        tr.linha-critica {
+          background-color: #fff3cd;
+        }
+
+        .badge-critico {
+          background-color: #dc3545;
+          color: white;
+          padding: 3px 8px;
+          border-radius: 10px;
+          font-size: 0.75em;
+          font-weight: bold;
+        }
+
         /* BOTÕES DE AÇÃO */
         .btn-editar {
           background-color: #ffc107;
@@ -252,11 +317,6 @@
           font-size: 0.85em;
           font-weight: bold;
           margin-right: 5px;
-          transition: background-color 0.2s;
-        }
-
-        .btn-editar:hover {
-          background-color: #e0a800;
         }
 
         .btn-remover {
@@ -267,53 +327,19 @@
           border-radius: 4px;
           cursor: pointer;
           font-size: 0.85em;
-          transition: background-color 0.2s;
         }
 
-        .btn-remover:hover {
-          background-color: #c82333;
-        }
-
-        /* REGRAS PARA IMPRESSÃO EM PAISAGEM (A4 LANDSCAPE) */
-        @page {
-          size: A4 landscape;
-          margin: 10mm;
-        }
-
+        /* IMPRESSÃO NATIVA (A4 LANDSCAPE) */
+        @page { size: A4 landscape; margin: 10mm; }
         @media print {
-          body {
-            background-color: #ffffff !important;
-            color: #000 !important;
-          }
-          .login-overlay, .form-container, .toolbar-container, .col-acoes, td:last-child, th:last-child {
+          body { background-color: #ffffff !important; color: #000 !important; }
+          .login-overlay, .form-container, .toolbar-container, .nav-tabs, .user-badge, .col-acoes, td:last-child, th:last-child {
             display: none !important;
           }
-          .app-container {
-            box-shadow: none !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            max-width: 100% !important;
-          }
-          .table-responsive {
-            overflow: visible !important;
-          }
-          table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-            table-layout: fixed !important;
-          }
-          th, td {
-            font-size: 10px !important;
-            padding: 6px 4px !important;
-            border: 1px solid #444 !important;
-            word-wrap: break-word !important;
-          }
-          th {
-            background-color: #002b5c !important;
-            color: #ffffff !important;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-          }
+          .app-container { box-shadow: none !important; margin: 0 !important; padding: 0 !important; max-width: 100% !important; }
+          table { width: 100% !important; border-collapse: collapse !important; }
+          th, td { font-size: 10px !important; padding: 6px 4px !important; border: 1px solid #444 !important; }
+          th { background-color: #002b5c !important; color: #ffffff !important; }
         }
     </style>
 </head>
@@ -327,13 +353,13 @@
             
             <form onsubmit="tentarLogin(event)">
                 <div class="input-group">
-                    <label for="usr-field">Nome de Utilizador / E-mail:</label>
-                    <input type="text" id="usr-field" required autocomplete="off" name="no_autofill_usr">
+                    <label for="usr-field">Utilizador:</label>
+                    <input type="text" id="usr-field" required autocomplete="off">
                 </div>
                 
                 <div class="input-group">
                     <label for="pwd-field">Palavra-passe:</label>
-                    <input type="password" id="pwd-field" required autocomplete="off" name="no_autofill_pwd">
+                    <input type="password" id="pwd-field" required autocomplete="off">
                 </div>
                 
                 <button type="submit" class="btn-login">Entrar</button>
@@ -341,14 +367,52 @@
         </div>
     </div>
 
-    <!-- APLICATIVO / INVENTÁRIO (Oculto até o login correto) -->
+    <!-- MODAL DE PRIMEIRO ACESSO (TROCA OBRIGATÓRIA DE SENHA) -->
+    <div id="first-access-modal" class="login-overlay" style="display: none;">
+        <div class="login-card">
+            <h2>PRIMEIRO ACESSO</h2>
+            <p class="login-subtitle">É necessário definir o seu novo utilizador e palavra-passe para continuar.</p>
+            
+            <form onsubmit="salvarNovaCredencial(event)">
+                <div class="input-group">
+                    <label for="new-usr-field">Novo Nome de Utilizador:</label>
+                    <input type="text" id="new-usr-field" required autocomplete="off">
+                </div>
+                
+                <div class="input-group">
+                    <label for="new-pwd-field">Nova Palavra-passe:</label>
+                    <input type="password" id="new-pwd-field" required autocomplete="off">
+                </div>
+                
+                <button type="submit" class="btn-login">Atualizar e Aceder</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- APLICATIVO / INVENTÁRIO -->
     <div id="app-container" class="app-container" style="display: none;">
         <header>
             <h1>THALES Information Systems - Inventário</h1>
+            <div class="user-badge">
+                <span>👤 Utilizador: <strong id="logged-user-name">-</strong> (<span id="logged-user-role">-</span>)</span>
+                <button onclick="logout()" class="btn-logout">Sair</button>
+            </div>
         </header>
 
-        <main>
-            <!-- Formulário de Registo / Adição e Edição -->
+        <!-- Navegação por Abas -->
+        <div class="nav-tabs">
+            <button id="tab-inv-btn" class="tab-btn active" onclick="mudarAba('inventario')">📦 Inventário</button>
+            <button id="tab-hist-btn" class="tab-btn" onclick="mudarAba('historico')">📜 Histórico de Movimentações</button>
+        </div>
+
+        <!-- Alerta de Estoque Mínimo -->
+        <div id="alerta-estoque" class="alerta-estoque">
+            ⚠️ <strong>Atenção:</strong> Existem itens com estoque igual ou abaixo do limite mínimo (<= 5 unidades)!
+        </div>
+
+        <!-- VISÃO 1: INVENTÁRIO -->
+        <div id="visao-inventario">
+            <!-- Formulário de Registo / Edição -->
             <form id="inventory-form" onsubmit="salvarItem(event)" class="form-container">
                 <input type="hidden" id="item-id">
                 <input type="text" id="nome" placeholder="Nome do Equipamento" required autocomplete="off">
@@ -366,11 +430,11 @@
                 <button type="submit" id="btn-submit" class="btn-adicionar">Adicionar</button>
             </form>
 
-            <!-- Barra de Ferramentas: Pesquisa e Exportações -->
+            <!-- Barra de Ferramentas -->
             <div class="toolbar-container">
                 <input type="text" id="search-input" placeholder="🔍 Pesquisar em qualquer coluna..." autocomplete="off">
                 <div class="export-buttons">
-                    <button type="button" onclick="exportarExcel()" class="btn-excel">📊 Exportar Excel</button>
+                    <button type="button" onclick="exportarExcel()" class="btn-excel">📊 Exportar Excel (.xlsx)</button>
                     <button type="button" onclick="exportarPDF()" class="btn-pdf">📄 Exportar PDF</button>
                 </div>
             </div>
@@ -393,13 +457,41 @@
                         </tr>
                     </thead>
                     <tbody id="inventory-body">
-                        <!-- Os dados serão injetados dinamicamente via script.js -->
+                        <!-- Dados injetados via JS -->
                     </tbody>
                 </table>
             </div>
-        </main>
+        </div>
+
+        <!-- VISÃO 2: HISTÓRICO DE MOVIMENTAÇÕES -->
+        <div id="visao-historico" style="display: none;">
+            <!-- Barra de Ferramentas para o Histórico -->
+            <div class="toolbar-container">
+                <input type="text" id="search-history-input" placeholder="🔍 Pesquisar no histórico..." autocomplete="off">
+                <div class="export-buttons">
+                    <button type="button" onclick="exportarExcel()" class="btn-excel">📊 Exportar Excel (.xlsx)</button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Utilizador</th>
+                            <th>Ação</th>
+                            <th>Item</th>
+                            <th>Detalhes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body">
+                        <!-- Histórico injetado via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
-    <script src="script.js?v=2.4"></script>
+    <script src="script.js?v=3.1"></script>
 </body>
 </html>
