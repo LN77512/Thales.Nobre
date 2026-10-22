@@ -303,11 +303,27 @@ function registrarHistorico(acao, nomeItem, modeloItem, detalhes) {
   const agora = new Date();
   const dataFormatada = agora.toLocaleDateString("pt-BR");
   const horaFormatada = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const nomeUsuario = usuarioAtual ? usuarioAtual.nome || usuarioAtual.usuario : "Sistema";
+
+  const historyBody = document.getElementById("history-body");
+  if (historyBody) {
+    const trHist = document.createElement("tr");
+    trHist.innerHTML = `
+      <td>${dataFormatada} ${horaFormatada}</td>
+      <td><strong>${nomeUsuario}</strong></td>
+      <td>${acao}</td>
+      <td>${nomeItem}</td>
+      <td>${modeloItem || ""}</td>
+      <td>${detalhes}</td>
+    `;
+    historyBody.insertBefore(trHist, historyBody.firstChild);
+    filtrarHistorico();
+  }
 
   const registro = {
     data: {
       id: Date.now().toString().slice(-6),
-      usuario: usuarioAtual ? usuarioAtual.nome || usuarioAtual.usuario : "Sistema",
+      usuario: nomeUsuario,
       acao: acao,
       item: nomeItem,
       modelo: modeloItem || "",
@@ -389,14 +405,28 @@ function salvarItem(event) {
   const status = document.getElementById("status").value.trim();
   const responsavel = document.getElementById("responsavel").value.trim();
 
+  const itemAntigo = itemEmEdicao;
+
   const agora = new Date();
   const dataAtual = agora.toLocaleDateString('pt-BR');
   const horaAtual = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
   const tbody = document.getElementById("inventory-body");
-  const tr = document.createElement("tr");
   const tempId = idExistente || Date.now().toString().slice(-4);
-  
+
+  // Sincroniza visualmente o estoque total de todas as linhas com o mesmo nome na tabela
+  const nomeLower = nome.toLowerCase();
+  const linhas = tbody.getElementsByTagName("tr");
+  for (let i = 0; i < linhas.length; i++) {
+    const colunas = linhas[i].getElementsByTagName("td");
+    if (colunas.length < 7) continue;
+    const nomeLinha = colunas[0].textContent.replace("Crítico", "").trim().toLowerCase();
+    if (nomeLinha === nomeLower) {
+      colunas[4].textContent = quantidadeEstoque;
+    }
+  }
+
+  const tr = document.createElement("tr");
   tr.innerHTML = `
     <td>${nome}</td>
     <td>${marca}</td>
@@ -414,7 +444,6 @@ function salvarItem(event) {
   `;
 
   if (idExistente) {
-    const linhas = tbody.getElementsByTagName("tr");
     for (let i = 0; i < linhas.length; i++) {
       if (linhas[i].innerHTML.includes(`prepararEdicao('${idExistente}'`)) {
         linhas[i].remove();
@@ -438,16 +467,16 @@ function salvarItem(event) {
 
   if (idExistente) {
     let alteracoes = [];
-    if (itemEmEdicao) {
-      if (itemEmEdicao.nome !== nome) alteracoes.push(`Nome: ${itemEmEdicao.nome} ➔ ${nome}`);
-      if (itemEmEdicao.marca !== marca) alteracoes.push(`Marca: ${itemEmEdicao.marca} ➔ ${marca}`);
-      if (itemEmEdicao.modelo !== modelo) alteracoes.push(`Modelo: ${itemEmEdicao.modelo} ➔ ${modelo}`);
-      if (itemEmEdicao.quantidade !== quantidade) alteracoes.push(`Qtd: ${itemEmEdicao.quantidade} ➔ ${quantidade}`);
-      if (itemEmEdicao.quantidade_estoque !== quantidadeEstoque) alteracoes.push(`Estoque: ${itemEmEdicao.quantidade_estoque} ➔ ${quantidadeEstoque}`);
-      if (itemEmEdicao.status !== status) alteracoes.push(`Status: ${itemEmEdicao.status} ➔ ${status}`);
-      if (itemEmEdicao.responsavel !== responsavel) alteracoes.push(`Resp: ${itemEmEdicao.responsavel} ➔ ${responsavel}`);
+    if (itemAntigo) {
+      if (itemAntigo.nome !== nome) alteracoes.push(`Nome: ${itemAntigo.nome} ➔ ${nome}`);
+      if (itemAntigo.marca !== marca) alteracoes.push(`Marca: ${itemAntigo.marca} ➔ ${marca}`);
+      if (itemAntigo.modelo !== modelo) alteracoes.push(`Modelo: ${itemAntigo.modelo} ➔ ${modelo}`);
+      if (itemAntigo.quantidade !== quantidade) alteracoes.push(`Qtd: ${itemAntigo.quantidade} ➔ ${quantidade}`);
+      if (itemAntigo.quantidade_estoque !== quantidadeEstoque) alteracoes.push(`Estoque: ${itemAntigo.quantidade_estoque} ➔ ${quantidadeEstoque}`);
+      if (itemAntigo.status !== status) alteracoes.push(`Status: ${itemAntigo.status} ➔ ${status}`);
+      if (itemAntigo.responsavel !== responsavel) alteracoes.push(`Resp: ${itemAntigo.responsavel} ➔ ${responsavel}`);
     }
-    const detalheHistorico = alteracoes.length > 0 ? alteracoes.join(" | ") : "Nenhuma alteração detectada";
+    const detalheHistorico = alteracoes.length > 0 ? alteracoes.join(" | ") : "Item atualizado";
 
     fetch(`${GAS_URL}?action=UPDATE&id=${idExistente}`, {
       method: "POST",
