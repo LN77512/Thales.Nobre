@@ -1,17 +1,17 @@
 // Configuração da API SheetDB
 const SHEETDB_URL = "https://sheetdb.io/api/v1/in9wws1z72a7q";
 
-// Estado da Sessão Atual
+// Estado da Sessão Atual e Item sob Edição
 let usuarioAtual = null;
+let itemEmEdicao = null;
 
-// Tentar realizar o Login
+// Autenticação / Login
 function tentarLogin(event) {
   event.preventDefault();
   
   const usuarioInput = document.getElementById("usr-field").value.trim();
   const senhaInput = document.getElementById("pwd-field").value.trim();
 
-  // Buscar utilizadores no SheetDB (Aba usuarios)
   fetch(`${SHEETDB_URL}?sheet=usuarios`)
     .then(res => res.json())
     .then(usuarios => {
@@ -20,7 +20,6 @@ function tentarLogin(event) {
       if (encontrou) {
         usuarioAtual = encontrou;
 
-        // Se for Primeiro Acesso, força a troca de dados
         if (encontrou.primeiro_acesso === "true" || encontrou.primeiro_acesso === "TRUE") {
           document.getElementById("login-modal").style.display = "none";
           document.getElementById("first-access-modal").style.display = "flex";
@@ -37,7 +36,7 @@ function tentarLogin(event) {
     });
 }
 
-// Salvar novos dados no Primeiro Acesso
+// Troca Obrigatória de Senha no Primeiro Acesso
 function salvarNovaCredencial(event) {
   event.preventDefault();
   const novoUsuario = document.getElementById("new-usr-field").value.trim();
@@ -48,7 +47,6 @@ function salvarNovaCredencial(event) {
     return;
   }
 
-  // Atualizar utilizador no SheetDB
   fetch(`${SHEETDB_URL}/usuario/${usuarioAtual.usuario}?sheet=usuarios`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -73,7 +71,7 @@ function salvarNovaCredencial(event) {
   .catch(err => console.error("Erro ao atualizar credenciais:", err));
 }
 
-// Iniciar Aplicação após Autenticação
+// Iniciar Aplicação
 function iniciarSessao() {
   document.getElementById("login-modal").style.display = "none";
   document.getElementById("first-access-modal").style.display = "none";
@@ -94,7 +92,7 @@ function logout() {
   document.getElementById("pwd-field").value = "";
 }
 
-// Alternar entre Abas (Inventário vs Histórico)
+// Controle de Abas
 function mudarAba(aba) {
   const visaoInv = document.getElementById("visao-inventario");
   const visaoHist = document.getElementById("visao-historico");
@@ -115,20 +113,53 @@ function mudarAba(aba) {
   }
 }
 
-// Carregar Itens da Tabela Principal
+// Carregar Inventário com Agrupamento e Soma por Produto
 function carregarItens() {
   fetch(SHEETDB_URL)
     .then(response => response.json())
     .then(data => {
       const tbody = document.getElementById("inventory-body");
       tbody.innerHTML = "";
-      let temCritico = false;
+      
+      let itensTotais = {};
 
+      // 1. Agrupar e somar as quantidades parciais de cada linha por nome do produto
       if (Array.isArray(data)) {
         data.forEach((item) => {
-          const qtdEstoque = parseInt(item.quantidade_estoque || 0);
-          const ehCritico = qtdEstoque <= 5;
-          if (ehCritico) temCritico = true;
+          const nome = (item.nome || "").trim();
+          const qtdParcial = parseInt(item.quantidade || 0);
+          const qtdEstoqueTotal = parseInt(item.quantidade_estoque || 0);
+
+          if (!itensTotais[nome]) {
+            itensTotais[nome] = {
+              somaQuantidade: 0,
+              estoqueTotal: qtdEstoqueTotal
+            };
+          }
+          itensTotais[nome].somaQuantidade += qtdParcial;
+          if (qtdEstoqueTotal > 0) {
+            itensTotais[nome].estoqueTotal = qtdEstoqueTotal;
+          }
+        });
+      }
+
+      let itensCriticos = [];
+
+      // 2. Identificar quais produtos estão críticos (Ex: se o total em estoque for <= 5 ou restante disponível for <= 5)
+      Object.keys(itensTotais).forEach(nome => {
+        const info = itensTotais[nome];
+        const disponivelOuRestante = info.estoqueTotal - info.somaQuantidade;
+        
+        if (info.estoqueTotal <= 5 || disponivelOuRestante <= 5) {
+          itensCriticos.push(nome);
+        }
+      });
+
+      // 3. Renderizar linhas na tabela
+      if (Array.isArray(data)) {
+        data.forEach((item) => {
+          const nomeItem = (item.nome || "").trim();
+          const ehCritico = itensCriticos.includes(nomeItem);
 
           const tr = document.createElement("tr");
           if (ehCritico) tr.classList.add("linha-critica");
@@ -136,7 +167,7 @@ function carregarItens() {
           const botaoRemover = `<button class="btn-remover" onclick="removerItem('${item.id}', '${escapeHtml(item.nome)}')">Remover</button>`;
 
           tr.innerHTML = `
-            <td>${item.nome || ""} ${ehCritico ? '<span class="badge-critico">Mínimo</span>' : ''}</td>
+            <td>${item.nome || ""} ${ehCritico ? '<span class="badge-critico">Crítico</span>' : ''}</td>
             <td>${item.marca || ""}</td>
             <td>${item.modelo || ""}</td>
             <td>${item.quantidade || "0"}</td>
@@ -154,13 +185,21 @@ function carregarItens() {
         });
       }
 
-      document.getElementById("alerta-estoque").style.display = temCritico ? "block" : "none";
+      // 4. Atualizar Aviso no Topo
+      const alertaDiv = document.getElementById("alerta-estoque");
+      if (itensCriticos.length > 0) {
+        alertaDiv.style.display = "block";
+        alertaDiv.innerHTML = `⚠️ <strong>Atenção! Os seguintes produtos estão com o estoque total ou disponível no limite:</strong> ${itensCriticos.join(", ")}`;
+      } else {
+        alertaDiv.style.display = "none";
+      }
+
       filtrarTabela();
     })
     .catch(error => console.error("Erro ao carregar inventário:", error));
 }
 
-// Registar Movimentação na Aba `historico`
+// Gravar Histórico na Aba `historico`
 function registrarHistorico(acao, nomeItem, detalhes) {
   const agora = new Date();
   const dataFormatada = agora.toLocaleDateString("pt-BR");
@@ -185,7 +224,7 @@ function registrarHistorico(acao, nomeItem, detalhes) {
   }).catch(err => console.error("Erro ao gravar histórico:", err));
 }
 
-// Carregar Lista de Histórico
+// Carregar Dados da Tabela de Histórico
 function carregarHistorico() {
   fetch(`${SHEETDB_URL}?sheet=historico`)
     .then(res => res.json())
@@ -211,18 +250,46 @@ function carregarHistorico() {
     .catch(err => console.error("Erro ao carregar histórico:", err));
 }
 
-// Salvar / Editar Item
+// Capturar Estado Anterior para Edição Completa
+function prepararEdicao(id, nome, marca, modelo, quantidade, quantidadeEstoque, status, responsavel) {
+  itemEmEdicao = {
+    id: String(id),
+    nome: String(nome || "").trim(),
+    marca: String(marca !== 'undefined' ? marca : "").trim(),
+    modelo: String(modelo !== 'undefined' ? modelo : "").trim(),
+    quantidade: String(quantidade || "0").trim(),
+    quantidade_estoque: String(quantidadeEstoque !== 'undefined' ? quantidadeEstoque : '0').trim(),
+    status: String(status || "").trim(),
+    responsavel: String(responsavel || "").trim()
+  };
+
+  document.getElementById("item-id").value = id;
+  document.getElementById("nome").value = itemEmEdicao.nome;
+  document.getElementById("marca").value = itemEmEdicao.marca;
+  document.getElementById("modelo").value = itemEmEdicao.modelo;
+  document.getElementById("quantidade").value = itemEmEdicao.quantidade;
+  document.getElementById("quantidade_estoque").value = itemEmEdicao.quantidade_estoque;
+  document.getElementById("status").value = itemEmEdicao.status;
+  document.getElementById("responsavel").value = itemEmEdicao.responsavel;
+
+  const btnSubmit = document.getElementById("btn-submit");
+  btnSubmit.textContent = "Atualizar";
+  btnSubmit.style.backgroundColor = "#ffc107";
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Salvar ou Editar Item com Comparação Detalhada de Alterações
 function salvarItem(event) {
   event.preventDefault();
 
   const idExistente = document.getElementById("item-id").value;
-  const nome = document.getElementById("nome").value;
-  const marca = document.getElementById("marca").value;
-  const modelo = document.getElementById("modelo").value;
-  const quantidade = document.getElementById("quantidade").value;
-  const quantidadeEstoque = document.getElementById("quantidade_estoque").value;
-  const status = document.getElementById("status").value;
-  const responsavel = document.getElementById("responsavel").value;
+  const nome = document.getElementById("nome").value.trim();
+  const marca = document.getElementById("marca").value.trim();
+  const modelo = document.getElementById("modelo").value.trim();
+  const quantidade = document.getElementById("quantidade").value.trim();
+  const quantidadeEstoque = document.getElementById("quantidade_estoque").value.trim();
+  const status = document.getElementById("status").value.trim();
+  const responsavel = document.getElementById("responsavel").value.trim();
 
   const agora = new Date();
   const dataAtual = agora.toLocaleDateString('pt-BR');
@@ -238,13 +305,27 @@ function salvarItem(event) {
   };
 
   if (idExistente) {
+    let alteracoes = [];
+
+    if (itemEmEdicao) {
+      if (itemEmEdicao.status !== status) alteracoes.push(`Status: ${itemEmEdicao.status} ➔ ${status}`);
+      if (itemEmEdicao.quantidade !== quantidade) alteracoes.push(`Qtd: ${itemEmEdicao.quantidade} ➔ ${quantidade}`);
+      if (itemEmEdicao.quantidade_estoque !== quantidadeEstoque) alteracoes.push(`Estoque: ${itemEmEdicao.quantidade_estoque} ➔ ${quantidadeEstoque}`);
+      if (itemEmEdicao.responsavel !== responsavel) alteracoes.push(`Resp: ${itemEmEdicao.responsavel} ➔ ${responsavel}`);
+      if (itemEmEdicao.nome !== nome) alteracoes.push(`Nome: ${itemEmEdicao.nome} ➔ ${nome}`);
+      if (itemEmEdicao.marca !== marca) alteracoes.push(`Marca: ${itemEmEdicao.marca} ➔ ${marca}`);
+      if (itemEmEdicao.modelo !== modelo) alteracoes.push(`Modelo: ${itemEmEdicao.modelo} ➔ ${modelo}`);
+    }
+
+    const detalheHistorico = alteracoes.length > 0 ? alteracoes.join(" | ") : "Item atualizado sem alterações de campo";
+
     fetch(`${SHEETDB_URL}/id/${idExistente}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(itemPayload)
     })
     .then(() => {
-      registrarHistorico("ALTERAÇÃO", nome, `Qtd: ${quantidade}, Estoque: ${quantidadeEstoque}, Status: ${status}`);
+      registrarHistorico("ALTERAÇÃO", nome, detalheHistorico);
       resetarFormulario();
       carregarItens();
     });
@@ -258,7 +339,7 @@ function salvarItem(event) {
       body: JSON.stringify(itemPayload)
     })
     .then(() => {
-      registrarHistorico("ADICIONOU", nome, `Qtd Inicial: ${quantidade}, Estoque: ${quantidadeEstoque}`);
+      registrarHistorico("ADICIONOU", nome, `Qtd Inicial: ${quantidade}, Estoque: ${quantidadeEstoque}, Status: ${status}`);
       resetarFormulario();
       carregarItens();
     });
@@ -276,7 +357,7 @@ function removerItem(id, nomeItem) {
   }
 }
 
-// Filtro da Tabela de Inventário
+// Filtro Inventário
 function filtrarTabela() {
   const input = document.getElementById("search-input");
   if (!input) return;
@@ -290,7 +371,7 @@ function filtrarTabela() {
   }
 }
 
-// Filtro da Tabela de Histórico
+// Filtro Histórico
 function filtrarHistorico() {
   const input = document.getElementById("search-history-input");
   if (!input) return;
@@ -312,7 +393,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (searchHistoryInput) searchHistoryInput.addEventListener("input", filtrarHistorico);
 });
 
-// Exportação Excel (Dinâmica: Inventário ou Histórico)
+// Exportação Excel Nativo (.xlsx)
 function exportarExcel() {
   const visaoInv = document.getElementById("visao-inventario");
   const tabInventarioAtiva = visaoInv.style.display !== "none";
@@ -360,30 +441,16 @@ function exportarExcel() {
   XLSX.writeFile(wb, nomeArquivo);
 }
 
-// Exportação PDF
+// Exportação PDF via Impressão Nativa
 function exportarPDF() {
   window.print();
 }
 
-function prepararEdicao(id, nome, marca, modelo, quantidade, quantidadeEstoque, status, responsavel) {
-  document.getElementById("item-id").value = id;
-  document.getElementById("nome").value = nome;
-  document.getElementById("marca").value = marca !== 'undefined' ? marca : '';
-  document.getElementById("modelo").value = modelo !== 'undefined' ? modelo : '';
-  document.getElementById("quantidade").value = quantidade;
-  document.getElementById("quantidade_estoque").value = quantidadeEstoque !== 'undefined' ? quantidadeEstoque : '0';
-  document.getElementById("status").value = status;
-  document.getElementById("responsavel").value = responsavel;
-
-  const btnSubmit = document.getElementById("btn-submit");
-  btnSubmit.textContent = "Atualizar";
-  btnSubmit.style.backgroundColor = "#ffc107";
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
+// Resetar Formulário
 function resetarFormulario() {
   document.getElementById("inventory-form").reset();
   document.getElementById("item-id").value = "";
+  itemEmEdicao = null;
   const btnSubmit = document.getElementById("btn-submit");
   btnSubmit.textContent = "Adicionar";
   btnSubmit.style.backgroundColor = "#28a745";
