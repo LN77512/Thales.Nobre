@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>THALES Information Systems - Inventário</title>
+    <!-- Biblioteca Chart.js para o Dashboard Gráfico -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Biblioteca leve para exportação em Excel nativo (.xlsx) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
@@ -171,6 +173,17 @@
           display: none;
         }
 
+        /* PAINEL GRÁFICO (DASHBOARD) */
+        .dashboard-container {
+          max-width: 320px;
+          margin: 0 auto 20px auto;
+          background: #fff;
+          padding: 15px;
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          border: 1px solid #e0e0e0;
+        }
+
         /* FORMULÁRIO DE REGISTO */
         .form-container {
           display: flex;
@@ -221,10 +234,10 @@
           justify-content: space-between;
           align-items: center;
           gap: 15px;
-          flex-wrap: nowrap;
+          flex-wrap: wrap;
         }
 
-        .toolbar-container input {
+        .toolbar-container input[type="text"] {
           width: 350px;
           min-width: 250px;
           padding: 10px 14px;
@@ -233,6 +246,22 @@
           font-size: 0.95em;
           box-sizing: border-box;
           outline: none;
+        }
+
+        .date-filter-group {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 0.9em;
+          font-weight: bold;
+          color: #495057;
+        }
+
+        .date-filter-group input[type="date"] {
+          padding: 8px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-size: 0.9em;
         }
 
         .export-buttons {
@@ -305,6 +334,7 @@
           border-radius: 10px;
           font-size: 0.75em;
           font-weight: bold;
+          margin-left: 6px;
         }
 
         /* BOTÕES DE AÇÃO */
@@ -430,6 +460,11 @@
 
         <!-- VISÃO 1: INVENTÁRIO -->
         <div id="visao-inventario">
+            <!-- PAINEL GRÁFICO (DASHBOARD) -->
+            <div class="dashboard-container">
+                <canvas id="statusChart"></canvas>
+            </div>
+
             <!-- Formulário de Registo / Edição -->
             <form id="inventory-form" onsubmit="salvarItem(event)" class="form-container">
                 <input type="hidden" id="item-id">
@@ -483,10 +518,17 @@
 
         <!-- VISÃO 2: HISTÓRICO DE MOVIMENTAÇÕES -->
         <div id="visao-historico" style="display: none;">
-            <div class="toolbar-container">
+            <div class="toolbar-container" style="flex-wrap: wrap;">
                 <input type="text" id="search-history-input" placeholder="🔍 Pesquisar no histórico..." autocomplete="off">
+                
+                <div class="date-filter-group">
+                    <label>De: <input type="date" id="filtro-data-inicio" onchange="filtrarHistorico()"></label>
+                    <label>Até: <input type="date" id="filtro-data-fim" onchange="filtrarHistorico()"></label>
+                </div>
+
                 <div class="export-buttons">
                     <button type="button" onclick="exportarExcel()" class="btn-excel">📊 Exportar Excel (.xlsx)</button>
+                    <button type="button" onclick="exportarPDF()" class="btn-pdf">📄 Exportar PDF</button>
                 </div>
             </div>
 
@@ -510,6 +552,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=4.6"></script>
+    <script src="script.js?v=4.7"></script>
 </body>
 </html>

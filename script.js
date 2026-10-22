@@ -2,6 +2,7 @@ const GAS_URL = "https://script.google.com/macros/s/AKfycbxAvmBtLUPQpeiJepc6xYhB
 
 let usuarioAtual = null;
 let itemEmEdicao = null;
+let meuGraficoStatus = null;
 
 function formatarDataExibicao(valor) {
   if (!valor) return "";
@@ -209,6 +210,50 @@ function mudarAba(aba) {
   }
 }
 
+function atualizarDashboard(data) {
+  const ctx = document.getElementById('statusChart');
+  if (!ctx) return;
+
+  let disponivel = 0;
+  let emUso = 0;
+  let manutencao = 0;
+
+  if (Array.isArray(data)) {
+    data.forEach(item => {
+      const status = (item.status || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      if (status.includes("disponivel")) {
+        disponivel++;
+      } else if (status.includes("manutencao")) {
+        manutencao++;
+      } else {
+        emUso++;
+      }
+    });
+  }
+
+  if (meuGraficoStatus) {
+    meuGraficoStatus.destroy();
+  }
+
+  meuGraficoStatus = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Disponível', 'Em Uso', 'Manutenção'],
+      datasets: [{
+        data: [disponivel, emUso, manutencao],
+        backgroundColor: ['#28a745', '#007bff', '#ffc107']
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom' },
+        title: { display: true, text: 'Proporção de Status do Inventário' }
+      }
+    }
+  });
+}
+
 function carregarItens() {
   fetch(GAS_URL)
     .then(response => response.json())
@@ -284,6 +329,8 @@ function carregarItens() {
         });
       }
 
+      atualizarDashboard(data);
+
       const alertaDiv = document.getElementById("alerta-estoque");
       if (alertaDiv) {
         if (itensCriticos.length > 0) {
@@ -345,6 +392,7 @@ function carregarHistorico() {
     .then(res => res.json())
     .then(dados => {
       const tbody = document.getElementById("history-body");
+      if (!tbody) return;
       tbody.innerHTML = "";
 
       if (Array.isArray(dados)) {
@@ -414,7 +462,6 @@ function salvarItem(event) {
   const tbody = document.getElementById("inventory-body");
   const tempId = idExistente || Date.now().toString().slice(-4);
 
-  // Sincroniza visualmente o estoque total de todas as linhas com o mesmo nome na tabela
   const nomeLower = nome.toLowerCase();
   const linhas = tbody.getElementsByTagName("tr");
   for (let i = 0; i < linhas.length; i++) {
@@ -608,15 +655,38 @@ function filtrarTabela() {
 }
 
 function filtrarHistorico() {
-  const input = document.getElementById("search-history-input");
-  if (!input) return;
-  const termo = input.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const inputTexto = document.getElementById("search-history-input");
+  const inputInicio = document.getElementById("filtro-data-inicio");
+  const inputFim = document.getElementById("filtro-data-fim");
+
+  const termo = inputTexto ? inputTexto.value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+  const dataInicioVal = inputInicio ? inputInicio.value : "";
+  const dataFimVal = inputFim ? inputFim.value : "";
+
   const tbody = document.getElementById("history-body");
+  if (!tbody) return;
   const linhas = tbody.getElementsByTagName("tr");
 
   for (let i = 0; i < linhas.length; i++) {
+    const colunas = linhas[i].getElementsByTagName("td");
+    if (colunas.length === 0) continue;
+
     const textoLinha = (linhas[i].textContent || linhas[i].innerText).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-    linhas[i].style.display = textoLinha.includes(termo) ? "" : "none";
+    const matchTexto = textoLinha.includes(termo);
+
+    let matchData = true;
+    if (dataInicioVal || dataFimVal) {
+      const dataHoraStr = colunas[0].textContent.trim();
+      const partesDataHora = dataHoraStr.split(" ")[0].split("/");
+      if (partesDataHora.length === 3) {
+        const dataItemISO = `${partesDataHora[2]}-${partesDataHora[1]}-${partesDataHora[0]}`;
+        
+        if (dataInicioVal && dataItemISO < dataInicioVal) matchData = false;
+        if (dataFimVal && dataItemISO > dataFimVal) matchData = false;
+      }
+    }
+
+    linhas[i].style.display = (matchTexto && matchData) ? "" : "none";
   }
 }
 
