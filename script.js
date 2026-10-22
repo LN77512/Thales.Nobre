@@ -4,6 +4,30 @@ const CODIGO_SEGURANCA_ESTABELECIDO = "07072023";
 let usuarioAtual = null;
 let itemEmEdicao = null;
 
+function formatarDataExibicao(valor) {
+  if (!valor) return "";
+  let str = String(valor);
+  if (str.includes("T")) {
+    let partesData = str.split("T")[0].split("-");
+    if (partesData.length === 3) {
+      return `${partesData[2]}/${partesData[1]}/${partesData[0]}`;
+    }
+  }
+  return str;
+}
+
+function formatarHoraExibicao(valor) {
+  if (!valor) return "";
+  let str = String(valor);
+  if (str.includes("T")) {
+    let partesHora = str.split("T")[1];
+    if (partesHora) {
+      return partesHora.substring(0, 5);
+    }
+  }
+  return str;
+}
+
 function tentarLoginDireto(event) {
   if (event) event.preventDefault();
 
@@ -235,8 +259,8 @@ function carregarItens() {
             <td>${item.quantidade_estoque || "0"}</td>
             <td>${item.status || ""}</td>
             <td>${item.responsavel || ""}</td>
-            <td>${item.data || ""}</td>
-            <td>${item.hora || ""}</td>
+            <td>${formatarDataExibicao(item.data)}</td>
+            <td>${formatarHoraExibicao(item.hora)}</td>
             <td class="col-acoes">
               <button class="btn-editar" onclick="prepararEdicao('${item.id}', '${escapeHtml(item.nome)}', '${escapeHtml(item.marca)}', '${escapeHtml(item.modelo)}', '${item.quantidade}', '${item.quantidade_estoque}', '${item.status}', '${escapeHtml(item.responsavel)}')">Editar</button>
               ${botaoRemover}
@@ -295,7 +319,7 @@ function carregarHistorico() {
         dados.reverse().forEach(h => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
-            <td>${h.data || ""} ${h.hora || ""}</td>
+            <td>${formatarDataExibicao(h.data)} ${formatarHoraExibicao(h.hora)}</td>
             <td><strong>${h.usuario || ""}</strong></td>
             <td>${h.acao || ""}</td>
             <td>${h.item || ""}</td>
@@ -353,8 +377,43 @@ function salvarItem(event) {
   const dataAtual = agora.toLocaleDateString('pt-BR');
   const horaAtual = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+  // ADIÇÃO INSTANTÂNEA NA TELA (Atualização Otimista)
+  const tbody = document.getElementById("inventory-body");
+  const tr = document.createElement("tr");
+  const tempId = idExistente || Date.now().toString().slice(-4);
+  
+  tr.innerHTML = `
+    <td>${nome}</td>
+    <td>${marca}</td>
+    <td>${modelo}</td>
+    <td>${quantidade}</td>
+    <td>${quantidadeEstoque}</td>
+    <td>${status}</td>
+    <td>${responsavel}</td>
+    <td>${dataAtual}</td>
+    <td>${horaAtual}</td>
+    <td class="col-acoes">
+      <button class="btn-editar" onclick="prepararEdicao('${tempId}', '${escapeHtml(nome)}', '${escapeHtml(marca)}', '${escapeHtml(modelo)}', '${quantidade}', '${quantidadeEstoque}', '${status}', '${escapeHtml(responsavel)}')">Editar</button>
+      <button class="btn-remover" onclick="removerItem('${tempId}', '${escapeHtml(nome)}', '${escapeHtml(modelo)}')">Remover</button>
+    </td>
+  `;
+
+  if (idExistente) {
+    // Se for edição, removemos a linha antiga visualmente e colocamos a nova no topo
+    const linhas = tbody.getElementsByTagName("tr");
+    for (let i = 0; i < linhas.length; i++) {
+      if (linhas[i].innerHTML.includes(`prepararEdicao('${idExistente}'`)) {
+        linhas[i].remove();
+        break;
+      }
+    }
+  }
+  tbody.insertBefore(tr, tbody.firstChild);
+  resetarFormulario();
+
   const itemPayload = {
     data: {
+      id: tempId,
       nome, marca, modelo, quantidade,
       quantidade_estoque: quantidadeEstoque,
       status, responsavel,
@@ -363,20 +422,14 @@ function salvarItem(event) {
   };
 
   if (idExistente) {
-    itemPayload.data.id = idExistente;
     let alteracoes = [];
-
     if (itemEmEdicao) {
       if (itemEmEdicao.status !== status) alteracoes.push(`Status: ${itemEmEdicao.status} ➔ ${status}`);
       if (itemEmEdicao.quantidade !== quantidade) alteracoes.push(`Qtd: ${itemEmEdicao.quantidade} ➔ ${quantidade}`);
       if (itemEmEdicao.quantidade_estoque !== quantidadeEstoque) alteracoes.push(`Estoque: ${itemEmEdicao.quantidade_estoque} ➔ ${quantidadeEstoque}`);
       if (itemEmEdicao.responsavel !== responsavel) alteracoes.push(`Resp: ${itemEmEdicao.responsavel} ➔ ${responsavel}`);
-      if (itemEmEdicao.nome !== nome) alteracoes.push(`Nome: ${itemEmEdicao.nome} ➔ ${nome}`);
-      if (itemEmEdicao.marca !== marca) alteracoes.push(`Marca: ${itemEmEdicao.marca} ➔ ${marca}`);
-      if (itemEmEdicao.modelo !== modelo) alteracoes.push(`Modelo: ${itemEmEdicao.modelo} ➔ ${modelo}`);
     }
-
-    const detalheHistorico = alteracoes.length > 0 ? alteracoes.join(" | ") : "Item atualizado sem alterações de campo";
+    const detalheHistorico = alteracoes.length > 0 ? alteracoes.join(" | ") : "Item atualizado";
 
     fetch(`${GAS_URL}?action=UPDATE&id=${idExistente}`, {
       method: "POST",
@@ -384,71 +437,39 @@ function salvarItem(event) {
       body: JSON.stringify(itemPayload)
     })
     .then(() => {
-      sincronizarEstoquePorNome(nome, quantidadeEstoque);
       registrarHistorico("ALTERAÇÃO", nome, modelo, detalheHistorico);
     })
     .catch(err => console.error("Erro ao atualizar item:", err));
 
   } else {
-    const novoId = Date.now().toString().slice(-4);
-    itemPayload.data.id = novoId;
-
     fetch(GAS_URL, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(itemPayload)
     })
     .then(() => {
-      sincronizarEstoquePorNome(nome, quantidadeEstoque);
       registrarHistorico("ADICIONOU", nome, modelo, `Qtd Inicial: ${quantidade}, Estoque: ${quantidadeEstoque}, Status: ${status}`);
     })
     .catch(err => console.error("Erro ao cadastrar novo item:", err));
   }
 }
 
-function sincronizarEstoquePorNome(nomeItem, novoEstoqueTotal) {
-  fetch(GAS_URL)
-    .then(res => res.json())
-    .then(todosItens => {
-      const promessas = [];
-
-      if (Array.isArray(todosItens)) {
-        todosItens.forEach(item => {
-          if ((item.nome || "").trim().toLowerCase() === nomeItem.trim().toLowerCase()) {
-            if (String(item.quantidade_estoque) !== String(novoEstoqueTotal)) {
-              const promessa = fetch(`${GAS_URL}?action=UPDATE&id=${item.id}`, {
-                method: "POST",
-                headers: { "Content-Type": "text/plain;charset=utf-8" },
-                body: JSON.stringify({
-                  data: { id: item.id, quantidade_estoque: novoEstoqueTotal }
-                })
-              });
-              promessas.push(promessa);
-            }
-          }
-        });
-      }
-
-      Promise.all(promessas).then(() => {
-        resetarFormulario();
-        carregarItens();
-      });
-    })
-    .catch(err => {
-      console.error("Erro ao sincronizar estoque total:", err);
-      resetarFormulario();
-      carregarItens();
-    });
-}
-
 function removerItem(id, nomeItem, modeloItem) {
   const senhaConfirmacao = prompt(`Para remover o item "${nomeItem}", insira a palavra-passe de confirmação:`);
 
-  if (senhaConfirmacao === null) {
-    return;
-  }
+  if (senhaConfirmacao === null) return;
 
   if (senhaConfirmacao.trim() === "@Thales2026!") {
+    // Remoção instantânea na tela
+    const tbody = document.getElementById("inventory-body");
+    const linhas = tbody.getElementsByTagName("tr");
+    for (let i = 0; i < linhas.length; i++) {
+      if (linhas[i].innerHTML.includes(`removerItem('${id}'`)) {
+        linhas[i].remove();
+        break;
+      }
+    }
+
     fetch(`${GAS_URL}?action=DELETE&id=${id}`, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -457,7 +478,6 @@ function removerItem(id, nomeItem, modeloItem) {
     .then(() => {
       registrarHistorico("REMOVEU", nomeItem, modeloItem, "Item removido do inventário");
       alert(`O item "${nomeItem}" foi removido com sucesso.`);
-      carregarItens();
     })
     .catch(err => console.error("Erro ao remover item:", err));
   } else {
