@@ -370,14 +370,24 @@ function salvarItem(event) {
   }
 }
 
-// Remover Item
+// Remover Item com Confirmação de Palavra-passe (@Thales2026!)
 function removerItem(id, nomeItem) {
-  if (confirm(`Tem certeza que deseja remover o item "${nomeItem}"?`)) {
+  const senhaConfirmacao = prompt(`Para remover o item "${nomeItem}", insira a palavra-passe de confirmação:`);
+
+  if (senhaConfirmacao === null) {
+    return;
+  }
+
+  if (senhaConfirmacao.trim() === "@Thales2026!") {
     fetch(`${SHEETDB_URL}/id/${id}`, { method: "DELETE" })
       .then(() => {
         registrarHistorico("REMOVEU", nomeItem, "Item removido do inventário");
+        alert(`O item "${nomeItem}" foi removido com sucesso.`);
         carregarItens();
-      });
+      })
+      .catch(err => console.error("Erro ao remover item:", err));
+  } else {
+    alert("Palavra-passe incorreta! O item não foi removido.");
   }
 }
 
