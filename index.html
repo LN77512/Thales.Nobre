@@ -292,6 +292,17 @@
           cursor: pointer;
         }
 
+        .btn-grafico {
+          background-color: #002b5c;
+          color: white;
+          border: none;
+          padding: 10px 14px;
+          border-radius: 5px;
+          font-weight: bold;
+          font-size: 0.88em;
+          cursor: pointer;
+        }
+
         /* TABELA */
         .table-responsive {
           overflow-x: auto;
@@ -487,6 +498,7 @@
             <div class="toolbar-container">
                 <input type="text" id="search-input" placeholder="🔍 Pesquisar em qualquer coluna..." autocomplete="off">
                 <div class="export-buttons">
+                    <button type="button" onclick="rolarParaGrafico()" class="btn-grafico">📈 Ver Gráfico</button>
                     <button type="button" onclick="exportarExcel()" class="btn-excel">📊 Exportar Excel (.xlsx)</button>
                     <button type="button" onclick="exportarPDF()" class="btn-pdf">📄 Exportar PDF</button>
                 </div>
@@ -552,6 +564,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=4.7"></script>
+    <script src="script.js?v=4.8"></script>
 </body>
 </html>
