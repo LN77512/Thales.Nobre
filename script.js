@@ -1,5 +1,4 @@
 const GAS_URL = "https://script.google.com/macros/s/AKfycbxAvmBtLUPQpeiJepc6xYhB-2vH60TnJUBnmVDtgaQcIBj124BpYSB3sH6bu3zRY6ubjA/exec";
-const CODIGO_SEGURANCA_ESTABELECIDO = "07072023";
 
 let usuarioAtual = null;
 let itemEmEdicao = null;
@@ -28,9 +27,7 @@ function formatarHoraExibicao(valor) {
   return str;
 }
 
-function tentarLoginDireto(event) {
-  if (event) event.preventDefault();
-
+function tentarLoginDireto() {
   const usuarioInput = document.getElementById("usr-field").value.trim();
   const senhaInput = document.getElementById("pwd-field").value.trim();
 
@@ -79,13 +76,31 @@ function validarCodigoSeguranca(event) {
   if (event) event.preventDefault();
   const codigoInput = document.getElementById("sec-code-field").value.trim();
 
-  if (codigoInput === CODIGO_SEGURANCA_ESTABELECIDO) {
-    document.getElementById("security-code-modal").style.display = "none";
-    document.getElementById("first-access-modal").style.display = "flex";
-  } else {
-    alert("Código de segurança incorreto! Acesso negado.");
-    document.getElementById("sec-code-field").value = "";
+  if (!codigoInput) {
+    alert("Por favor, insira o código de segurança.");
+    return;
   }
+
+  // Validação segura feita no servidor (Apps Script), invisível no F12
+  fetch(`${GAS_URL}?action=VALIDAR_CODIGO&codigo=${encodeURIComponent(codigoInput)}`, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ codigo: codigoInput })
+  })
+  .then(res => res.json())
+  .then(resposta => {
+    if (resposta.valido === true) {
+      document.getElementById("security-code-modal").style.display = "none";
+      document.getElementById("first-access-modal").style.display = "flex";
+    } else {
+      alert("Código de segurança incorreto! Acesso negado.");
+      document.getElementById("sec-code-field").value = "";
+    }
+  })
+  .catch(err => {
+    console.error("Erro ao validar código:", err);
+    alert("Erro de comunicação com o servidor.");
+  });
 }
 
 function salvarNovaCredencial(event) {
@@ -271,11 +286,13 @@ function carregarItens() {
       }
 
       const alertaDiv = document.getElementById("alerta-estoque");
-      if (itensCriticos.length > 0) {
-        alertaDiv.style.display = "block";
-        alertaDiv.innerHTML = `⚠️ <strong>Atenção! Existem produtos com o estoque disponível no limite crítico.</strong>`;
-      } else {
-        alertaDiv.style.display = "none";
+      if (alertaDiv) {
+        if (itensCriticos.length > 0) {
+          alertaDiv.style.display = "block";
+          alertaDiv.innerHTML = `⚠️ <strong>Atenção! Existem produtos com o estoque disponível no limite crítico.</strong>`;
+        } else {
+          alertaDiv.style.display = "none";
+        }
       }
 
       filtrarTabela();
@@ -377,7 +394,6 @@ function salvarItem(event) {
   const dataAtual = agora.toLocaleDateString('pt-BR');
   const horaAtual = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-  // ADIÇÃO INSTANTÂNEA NA TELA (Atualização Otimista)
   const tbody = document.getElementById("inventory-body");
   const tr = document.createElement("tr");
   const tempId = idExistente || Date.now().toString().slice(-4);
@@ -399,7 +415,6 @@ function salvarItem(event) {
   `;
 
   if (idExistente) {
-    // Se for edição, removemos a linha antiga visualmente e colocamos a nova no topo
     const linhas = tbody.getElementsByTagName("tr");
     for (let i = 0; i < linhas.length; i++) {
       if (linhas[i].innerHTML.includes(`prepararEdicao('${idExistente}'`)) {
@@ -410,6 +425,7 @@ function salvarItem(event) {
   }
   tbody.insertBefore(tr, tbody.firstChild);
   resetarFormulario();
+  recalcularCriticosLocalmente();
 
   const itemPayload = {
     data: {
@@ -460,7 +476,6 @@ function removerItem(id, nomeItem, modeloItem) {
   if (senhaConfirmacao === null) return;
 
   if (senhaConfirmacao.trim() === "@Thales2026!") {
-    // Remoção instantânea na tela
     const tbody = document.getElementById("inventory-body");
     const linhas = tbody.getElementsByTagName("tr");
     for (let i = 0; i < linhas.length; i++) {
@@ -469,6 +484,7 @@ function removerItem(id, nomeItem, modeloItem) {
         break;
       }
     }
+    recalcularCriticosLocalmente();
 
     fetch(`${GAS_URL}?action=DELETE&id=${id}`, {
       method: "POST",
@@ -482,6 +498,68 @@ function removerItem(id, nomeItem, modeloItem) {
     .catch(err => console.error("Erro ao remover item:", err));
   } else {
     alert("Palavra-passe incorreta! O item não foi removido.");
+  }
+}
+
+function recalcularCriticosLocalmente() {
+  const tbody = document.getElementById("inventory-body");
+  const linhas = tbody.getElementsByTagName("tr");
+  let totais = {};
+
+  for (let i = 0; i < linhas.length; i++) {
+    const colunas = linhas[i].getElementsByTagName("td");
+    if (colunas.length < 7) continue;
+    
+    const nomeOriginal = colunas[0].textContent.replace("Crítico", "").trim();
+    const nomeChave = nomeOriginal.toLowerCase();
+    const qtd = parseInt(colunas[3].textContent) || 0;
+    const estoqueTotal = parseInt(colunas[4].textContent) || 0;
+    const status = colunas[5].textContent.trim().toLowerCase();
+
+    if (!totais[nomeChave]) {
+      totais[nomeChave] = { nomeOriginal: nomeOriginal, somaOcupada: 0, estoqueTotal: estoqueTotal };
+    }
+
+    if (!status.includes("disponivel")) {
+      totais[nomeChave].somaOcupada += qtd;
+    }
+    if (estoqueTotal > 0) {
+      totais[nomeChave].estoqueTotal = estoqueTotal;
+    }
+  }
+
+  let temCriticoGeral = false;
+  for (let i = 0; i < linhas.length; i++) {
+    const colunas = linhas[i].getElementsByTagName("td");
+    if (colunas.length < 7) continue;
+
+    const nomeOriginal = colunas[0].textContent.replace("Crítico", "").trim();
+    const nomeChave = nomeOriginal.toLowerCase();
+    const info = totais[nomeChave];
+    
+    if (info) {
+      const disponivelReal = info.estoqueTotal - info.somaOcupada;
+      if (disponivelReal <= 5) {
+        temCriticoGeral = true;
+        linhas[i].classList.add("linha-critica");
+        if (!colunas[0].innerHTML.includes("badge-critico")) {
+          colunas[0].innerHTML = `${info.nomeOriginal} <span class="badge-critico">Crítico</span>`;
+        }
+      } else {
+        linhas[i].classList.remove("linha-critica");
+        colunas[0].innerHTML = info.nomeOriginal;
+      }
+    }
+  }
+
+  const alertaDiv = document.getElementById("alerta-estoque");
+  if (alertaDiv) {
+    if (temCriticoGeral) {
+      alertaDiv.style.display = "block";
+      alertaDiv.innerHTML = `⚠️ <strong>Atenção! Existem produtos com o estoque disponível no limite crítico.</strong>`;
+    } else {
+      alertaDiv.style.display = "none";
+    }
   }
 }
 
@@ -536,7 +614,7 @@ function exportarExcel() {
         const colunas = linhas[i].getElementsByTagName("td");
         let linhaDados = [];
         for (let j = 0; j < colunas.length - 1; j++) {
-          linhaDados.push(colunas[j].textContent.trim());
+          linhaDados.push(colunas[j].textContent.replace("Crítico", "").trim());
         }
         dados.push(linhaDados);
       }
