@@ -97,7 +97,7 @@
           background-color: #001a38;
         }
 
-        /* MODAL DO GRÁFICO (POPUP) */
+        /* MODAL DO GRÁFICO E EXCLUSÃO */
         .btn-fechar-modal {
           position: absolute;
           top: 12px;
@@ -399,18 +399,15 @@
         <div class="login-card">
             <h2>THALES</h2>
             <p class="login-subtitle">INFORMATION SYSTEMS<br>Insira suas credenciais para aceder</p>
-            
             <div>
                 <div class="input-group">
                     <label for="usr-field">Utilizador:</label>
                     <input type="text" id="usr-field" required autocomplete="off">
                 </div>
-                
                 <div class="input-group">
                     <label for="pwd-field">Palavra-passe:</label>
                     <input type="password" id="pwd-field" required autocomplete="off">
                 </div>
-                
                 <button type="button" onclick="tentarLoginDireto()" class="btn-login">Entrar</button>
             </div>
         </div>
@@ -421,13 +418,11 @@
         <div class="login-card">
             <h2>SEGURANÇA</h2>
             <p class="login-subtitle">Insira o código de acesso autorizado para continuar.</p>
-            
             <form onsubmit="validarCodigoSeguranca(event)">
                 <div class="input-group">
                     <label for="sec-code-field">Código de Acesso:</label>
                     <input type="password" id="sec-code-field" required autocomplete="off">
                 </div>
-                
                 <button type="submit" class="btn-login">Verificar Código</button>
             </form>
         </div>
@@ -438,18 +433,15 @@
         <div class="login-card">
             <h2>PRIMEIRO ACESSO</h2>
             <p class="login-subtitle">É necessário definir o seu novo utilizador e palavra-passe para continuar.</p>
-            
             <form onsubmit="salvarNovaCredencial(event)">
                 <div class="input-group">
                     <label for="new-usr-field">Novo Nome de Utilizador:</label>
                     <input type="text" id="new-usr-field" required autocomplete="off">
                 </div>
-                
                 <div class="input-group">
                     <label for="new-pwd-field">Nova Palavra-passe:</label>
                     <input type="password" id="new-pwd-field" required autocomplete="off">
                 </div>
-                
                 <button type="submit" class="btn-login">Atualizar e Aceder</button>
             </form>
         </div>
@@ -463,6 +455,24 @@
             <div style="max-width: 320px; margin: 0 auto;">
                 <canvas id="statusChart"></canvas>
             </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO -->
+    <div id="delete-modal" class="login-overlay" style="display: none;">
+        <div class="login-card">
+            <h2>CONFIRMAÇÃO</h2>
+            <p id="delete-modal-subtitle" class="login-subtitle">Insira a palavra-passe para remover o item.</p>
+            <form onsubmit="confirmarRemocaoModal(event)">
+                <div class="input-group">
+                    <label for="delete-pwd-field">Palavra-passe:</label>
+                    <input type="password" id="delete-pwd-field" required autocomplete="off">
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 15px;">
+                    <button type="button" onclick="fecharModalDelecao()" class="btn-login" style="background-color: #6c757d;">Cancelar</button>
+                    <button type="submit" class="btn-login" style="background-color: #dc3545; margin-top: 0;">Confirmar</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -577,6 +587,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=4.9"></script>
+    <script src="script.js?v=5.0"></script>
 </body>
 </html>

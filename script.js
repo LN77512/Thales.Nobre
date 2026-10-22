@@ -3,6 +3,8 @@ const GAS_URL = "https://script.google.com/macros/s/AKfycbxAvmBtLUPQpeiJepc6xYhB
 let usuarioAtual = null;
 let itemEmEdicao = null;
 let meuGraficoStatus = null;
+let dadosInventarioGlobal = [];
+let itemParaDeletarTemp = null;
 
 function formatarDataExibicao(valor) {
   if (!valor) return "";
@@ -212,6 +214,7 @@ function mudarAba(aba) {
 
 function abrirModalGrafico() {
   document.getElementById("chart-modal").style.display = "flex";
+  atualizarDashboard(dadosInventarioGlobal);
 }
 
 function fecharModalGrafico() {
@@ -266,6 +269,7 @@ function carregarItens() {
   fetch(GAS_URL)
     .then(response => response.json())
     .then(data => {
+      dadosInventarioGlobal = data;
       const tbody = document.getElementById("inventory-body");
       tbody.innerHTML = "";
       
@@ -336,8 +340,6 @@ function carregarItens() {
           tbody.appendChild(tr);
         });
       }
-
-      atualizarDashboard(data);
 
       const alertaDiv = document.getElementById("alerta-estoque");
       if (alertaDiv) {
@@ -557,11 +559,26 @@ function salvarItem(event) {
 }
 
 function removerItem(id, nomeItem, modeloItem) {
-  const senhaConfirmacao = prompt(`Para remover o item "${nomeItem}", insira a palavra-passe de confirmação:`);
+  itemParaDeletarTemp = { id, nomeItem, modeloItem };
+  document.getElementById("delete-modal-subtitle").textContent = `Insira a palavra-passe para remover o item "${nomeItem}".`;
+  document.getElementById("delete-pwd-field").value = "";
+  document.getElementById("delete-modal").style.display = "flex";
+  document.getElementById("delete-pwd-field").focus();
+}
 
-  if (senhaConfirmacao === null) return;
+function fecharModalDelecao() {
+  document.getElementById("delete-modal").style.display = "none";
+  itemParaDeletarTemp = null;
+}
 
-  if (senhaConfirmacao.trim() === "@Thales2026!") {
+function confirmarRemocaoModal(event) {
+  if (event) event.preventDefault();
+  const senhaInput = document.getElementById("delete-pwd-field").value;
+
+  if (senhaInput.trim() === "@Thales2026!") {
+    const { id, nomeItem, modeloItem } = itemParaDeletarTemp;
+    fecharModalDelecao();
+
     const tbody = document.getElementById("inventory-body");
     const linhas = tbody.getElementsByTagName("tr");
     for (let i = 0; i < linhas.length; i++) {
@@ -584,6 +601,7 @@ function removerItem(id, nomeItem, modeloItem) {
     .catch(err => console.error("Erro ao remover item:", err));
   } else {
     alert("Palavra-passe incorreta! O item não foi removido.");
+    document.getElementById("delete-pwd-field").value = "";
   }
 }
 
