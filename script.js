@@ -210,6 +210,14 @@ function mudarAba(aba) {
   }
 }
 
+function abrirModalGrafico() {
+  document.getElementById("chart-modal").style.display = "flex";
+}
+
+function fecharModalGrafico() {
+  document.getElementById("chart-modal").style.display = "none";
+}
+
 function atualizarDashboard(data) {
   const ctx = document.getElementById('statusChart');
   if (!ctx) return;
@@ -241,7 +249,7 @@ function atualizarDashboard(data) {
       labels: ['Disponível', 'Em Uso', 'Manutenção'],
       datasets: [{
         data: [disponivel, emUso, manutencao],
-        backgroundColor: ['#28a745', '#007bff', '#ffc107']
+        backgroundColor: ['#28a745', '#002b5c', '#fd7e14'] // Verde, Azul Escuro, Laranja
       }]
     },
     options: {

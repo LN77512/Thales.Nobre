@@ -25,7 +25,7 @@
           left: 0;
           width: 100%;
           height: 100%;
-          background-color: #002b5c;
+          background-color: rgba(0, 43, 92, 0.85);
           display: flex;
           justify-content: center;
           align-items: center;
@@ -40,6 +40,7 @@
           width: 100%;
           max-width: 400px;
           text-align: center;
+          position: relative;
         }
 
         .login-card h2 {
@@ -94,6 +95,23 @@
 
         .btn-login:hover {
           background-color: #001a38;
+        }
+
+        /* MODAL DO GRÁFICO (POPUP) */
+        .btn-fechar-modal {
+          position: absolute;
+          top: 12px;
+          right: 15px;
+          background: none;
+          border: none;
+          font-size: 22px;
+          font-weight: bold;
+          color: #888;
+          cursor: pointer;
+        }
+
+        .btn-fechar-modal:hover {
+          color: #000;
         }
 
         /* APLICATIVO / INVENTÁRIO */
@@ -171,17 +189,6 @@
           margin-bottom: 20px;
           font-size: 0.9em;
           display: none;
-        }
-
-        /* PAINEL GRÁFICO (DASHBOARD) */
-        .dashboard-container {
-          max-width: 320px;
-          margin: 0 auto 20px auto;
-          background: #fff;
-          padding: 15px;
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-          border: 1px solid #e0e0e0;
         }
 
         /* FORMULÁRIO DE REGISTO */
@@ -448,6 +455,17 @@
         </div>
     </div>
 
+    <!-- MODAL DO GRÁFICO DE STATUS -->
+    <div id="chart-modal" class="login-overlay" style="display: none;">
+        <div class="login-card" style="max-width: 450px;">
+            <button type="button" class="btn-fechar-modal" onclick="fecharModalGrafico()">&times;</button>
+            <h3 style="color: #002b5c; margin-top: 0;">Resumo do Inventário</h3>
+            <div style="max-width: 320px; margin: 0 auto;">
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
     <!-- APLICATIVO / INVENTÁRIO -->
     <div id="app-container" class="app-container" style="display: none;">
         <header>
@@ -471,11 +489,6 @@
 
         <!-- VISÃO 1: INVENTÁRIO -->
         <div id="visao-inventario">
-            <!-- PAINEL GRÁFICO (DASHBOARD) -->
-            <div class="dashboard-container">
-                <canvas id="statusChart"></canvas>
-            </div>
-
             <!-- Formulário de Registo / Edição -->
             <form id="inventory-form" onsubmit="salvarItem(event)" class="form-container">
                 <input type="hidden" id="item-id">
@@ -498,7 +511,7 @@
             <div class="toolbar-container">
                 <input type="text" id="search-input" placeholder="🔍 Pesquisar em qualquer coluna..." autocomplete="off">
                 <div class="export-buttons">
-                    <button type="button" onclick="rolarParaGrafico()" class="btn-grafico">📈 Ver Gráfico</button>
+                    <button type="button" onclick="abrirModalGrafico()" class="btn-grafico">📈 Ver Gráfico</button>
                     <button type="button" onclick="exportarExcel()" class="btn-excel">📊 Exportar Excel (.xlsx)</button>
                     <button type="button" onclick="exportarPDF()" class="btn-pdf">📄 Exportar PDF</button>
                 </div>
@@ -564,6 +577,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=4.8"></script>
+    <script src="script.js?v=4.9"></script>
 </body>
 </html>
