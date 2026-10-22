@@ -249,7 +249,7 @@ function atualizarDashboard(data) {
       labels: ['Disponível', 'Em Uso', 'Manutenção'],
       datasets: [{
         data: [disponivel, emUso, manutencao],
-        backgroundColor: ['#28a745', '#002b5c', '#fd7e14'] // Verde, Azul Escuro, Laranja
+        backgroundColor: ['#28a745', '#002b5c', '#fd7e14']
       }]
     },
     options: {
@@ -575,7 +575,7 @@ function removerItem(id, nomeItem, modeloItem) {
     fetch(`${GAS_URL}?action=DELETE&id=${id}`, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ id: id })
+      body: JSON.stringify({ id: id, nome: nomeItem, modelo: modeloItem })
     })
     .then(() => {
       registrarHistorico("REMOVEU", nomeItem, modeloItem, "Item removido do inventário");
