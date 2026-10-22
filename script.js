@@ -25,12 +25,8 @@ function tentarLoginDireto() {
 
       if (encontrou) {
         usuarioAtual = encontrou;
-
         document.getElementById("login-modal").style.display = "none";
 
-        // VERIFICAÇÃO INTELIGENTE: 
-        // O código de segurança e a criação de conta só aparecem se for primeiro acesso (true).
-        // Contas já criadas entram direto no sistema.
         const ehPrimeiroAcesso = String(usuarioAtual.primeiro_acesso).toLowerCase() === "true";
 
         if (ehPrimeiroAcesso) {
@@ -48,7 +44,7 @@ function tentarLoginDireto() {
     });
 }
 
-// Passo 2: Validar o Código de Segurança inserido (Apenas no primeiro acesso)
+// Passo 2: Validar o Código de Segurança inserido
 function validarCodigoSeguranca(event) {
   event.preventDefault();
   const codigoInput = document.getElementById("sec-code-field").value.trim();
@@ -81,7 +77,7 @@ function salvarNovaCredencial(event) {
         usuario: novoUsuario,
         senha: novaSenha,
         nome: novoUsuario,
-        primeiro_acesso: "false", // Torna-se false para nunca mais pedir código nem alteração
+        primeiro_acesso: "false",
         permissao: "admin"
       }
     })
@@ -141,7 +137,7 @@ function mudarAba(aba) {
   }
 }
 
-// Carregar Inventário com Agrupamento e Soma por Produto
+// Carregar Inventário (Crítico apenas quando o estoque disponível real for <= 5)
 function carregarItens() {
   fetch(SHEETDB_URL)
     .then(response => response.json())
@@ -153,38 +149,47 @@ function carregarItens() {
 
       if (Array.isArray(data)) {
         data.forEach((item) => {
-          const nome = (item.nome || "").trim();
+          const nomeChave = (item.nome || "").trim().toLowerCase();
           const qtdParcial = parseInt(item.quantidade || 0);
           const qtdEstoqueTotal = parseInt(item.quantidade_estoque || 0);
+          const statusItem = (item.status || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-          if (!itensTotais[nome]) {
-            itensTotais[nome] = {
-              somaQuantidade: 0,
+          if (!nomeChave) return;
+
+          if (!itensTotais[nomeChave]) {
+            itensTotais[nomeChave] = {
+              somaOcupada: 0,
               estoqueTotal: qtdEstoqueTotal
             };
           }
-          itensTotais[nome].somaQuantidade += qtdParcial;
+
+          // Soma apenas se o status NÃO for "disponivel"
+          if (!statusItem.includes("disponivel")) {
+            itensTotais[nomeChave].somaOcupada += qtdParcial;
+          }
+
           if (qtdEstoqueTotal > 0) {
-            itensTotais[nome].estoqueTotal = qtdEstoqueTotal;
+            itensTotais[nomeChave].estoqueTotal = qtdEstoqueTotal;
           }
         });
       }
 
       let itensCriticos = [];
 
-      Object.keys(itensTotais).forEach(nome => {
-        const info = itensTotais[nome];
-        const disponivelOuRestante = info.estoqueTotal - info.somaQuantidade;
+      Object.keys(itensTotais).forEach(chave => {
+        const info = itensTotais[chave];
+        const disponivelReal = info.estoqueTotal - info.somaOcupada;
         
-        if (info.estoqueTotal <= 5 || disponivelOuRestante <= 5) {
-          itensCriticos.push(nome);
+        // Fica crítico APENAS se o estoque disponível real for <= 5
+        if (disponivelReal <= 5) {
+          itensCriticos.push(chave);
         }
       });
 
       if (Array.isArray(data)) {
         data.forEach((item) => {
-          const nomeItem = (item.nome || "").trim();
-          const ehCritico = itensCriticos.includes(nomeItem);
+          const nomeChave = (item.nome || "").trim().toLowerCase();
+          const ehCritico = itensCriticos.includes(nomeChave);
 
           const tr = document.createElement("tr");
           if (ehCritico) tr.classList.add("linha-critica");
@@ -213,7 +218,7 @@ function carregarItens() {
       const alertaDiv = document.getElementById("alerta-estoque");
       if (itensCriticos.length > 0) {
         alertaDiv.style.display = "block";
-        alertaDiv.innerHTML = `⚠️ <strong>Atenção! Os seguintes produtos estão com o estoque total ou disponível no limite:</strong> ${itensCriticos.join(", ")}`;
+        alertaDiv.innerHTML = `⚠️ <strong>Atenção! Existem produtos com o estoque disponível no limite crítico.</strong>`;
       } else {
         alertaDiv.style.display = "none";
       }
@@ -223,7 +228,7 @@ function carregarItens() {
     .catch(error => console.error("Erro ao carregar inventário:", error));
 }
 
-// Gravar Histórico na Aba `historico`
+// Gravar Histórico
 function registrarHistorico(acao, nomeItem, detalhes) {
   const agora = new Date();
   const dataFormatada = agora.toLocaleDateString("pt-BR");
@@ -248,7 +253,7 @@ function registrarHistorico(acao, nomeItem, detalhes) {
   }).catch(err => console.error("Erro ao gravar histórico:", err));
 }
 
-// Carregar Dados da Tabela de Histórico
+// Carregar Histórico
 function carregarHistorico() {
   fetch(`${SHEETDB_URL}?sheet=historico`)
     .then(res => res.json())
@@ -274,7 +279,7 @@ function carregarHistorico() {
     .catch(err => console.error("Erro ao carregar histórico:", err));
 }
 
-// Capturar Estado Anterior para Edição Completa
+// Preparar Edição
 function prepararEdicao(id, nome, marca, modelo, quantidade, quantidadeEstoque, status, responsavel) {
   itemEmEdicao = {
     id: String(id),
@@ -302,7 +307,7 @@ function prepararEdicao(id, nome, marca, modelo, quantidade, quantidadeEstoque, 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Salvar ou Editar Item com Comparação Detalhada de Alterações
+// Salvar ou Editar Item
 function salvarItem(event) {
   event.preventDefault();
 
@@ -349,10 +354,11 @@ function salvarItem(event) {
       body: JSON.stringify(itemPayload)
     })
     .then(() => {
+      sincronizarEstoquePorNome(nome, quantidadeEstoque);
       registrarHistorico("ALTERAÇÃO", nome, detalheHistorico);
-      resetarFormulario();
-      carregarItens();
-    });
+    })
+    .catch(err => console.error("Erro ao atualizar item:", err));
+
   } else {
     const novoId = Date.now().toString().slice(-4);
     itemPayload.data.id = novoId;
@@ -363,14 +369,50 @@ function salvarItem(event) {
       body: JSON.stringify(itemPayload)
     })
     .then(() => {
+      sincronizarEstoquePorNome(nome, quantidadeEstoque);
       registrarHistorico("ADICIONOU", nome, `Qtd Inicial: ${quantidade}, Estoque: ${quantidadeEstoque}, Status: ${status}`);
-      resetarFormulario();
-      carregarItens();
-    });
+    })
+    .catch(err => console.error("Erro ao cadastrar novo item:", err));
   }
 }
 
-// Remover Item com Confirmação de Palavra-passe (@Thales2026!)
+// Sincronizar Estoque Total por Nome
+function sincronizarEstoquePorNome(nomeItem, novoEstoqueTotal) {
+  fetch(SHEETDB_URL)
+    .then(res => res.json())
+    .then(todosItens => {
+      const promessas = [];
+
+      if (Array.isArray(todosItens)) {
+        todosItens.forEach(item => {
+          if ((item.nome || "").trim().toLowerCase() === nomeItem.trim().toLowerCase()) {
+            if (item.quantidade_estoque !== novoEstoqueTotal) {
+              const promessa = fetch(`${SHEETDB_URL}/id/${item.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  data: { quantidade_estoque: novoEstoqueTotal }
+                })
+              });
+              promessas.push(promessa);
+            }
+          }
+        });
+      }
+
+      Promise.all(promessas).then(() => {
+        resetarFormulario();
+        carregarItens();
+      });
+    })
+    .catch(err => {
+      console.error("Erro ao sincronizar estoque total:", err);
+      resetarFormulario();
+      carregarItens();
+    });
+}
+
+// Remover Item
 function removerItem(id, nomeItem) {
   const senhaConfirmacao = prompt(`Para remover o item "${nomeItem}", insira a palavra-passe de confirmação:`);
 
@@ -427,7 +469,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (searchHistoryInput) searchHistoryInput.addEventListener("input", filtrarHistorico);
 });
 
-// Exportação Excel Nativo (.xlsx)
+// Exportação Excel
 function exportarExcel() {
   const visaoInv = document.getElementById("visao-inventario");
   const tabInventarioAtiva = visaoInv.style.display !== "none";
@@ -475,7 +517,7 @@ function exportarExcel() {
   XLSX.writeFile(wb, nomeArquivo);
 }
 
-// Exportação PDF via Impressão Nativa
+// Exportação PDF
 function exportarPDF() {
   window.print();
 }
