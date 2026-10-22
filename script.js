@@ -1,15 +1,12 @@
-// Configuração da API SheetDB
-const SHEETDB_URL = "https://sheetdb.io/api/v1/in9wws1z72a7q";
-
-// Código secreto de segurança exigido apenas no primeiro acesso
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxAvmBtLUPQpeiJepc6xYhB-2vH60TnJUBnmVDtgaQcIBj124BpYSB3sH6bu3zRY6ubjA/exec";
 const CODIGO_SEGURANCA_ESTABELECIDO = "07072023";
 
-// Estado da Sessão Atual e Item sob Edição
 let usuarioAtual = null;
 let itemEmEdicao = null;
 
-// Passo 1: Autenticação Inicial Direta
-function tentarLoginDireto() {
+function tentarLoginDireto(event) {
+  if (event) event.preventDefault();
+
   const usuarioInput = document.getElementById("usr-field").value.trim();
   const senhaInput = document.getElementById("pwd-field").value.trim();
 
@@ -18,7 +15,17 @@ function tentarLoginDireto() {
     return;
   }
 
-  fetch(`${SHEETDB_URL}?sheet=usuarios`)
+  if (usuarioInput === "@Thales" && senhaInput === "@Thales2026!") {
+    usuarioAtual = {
+      usuario: "@Thales_TEMP",
+      isNovoCadastro: true
+    };
+    document.getElementById("login-modal").style.display = "none";
+    document.getElementById("security-code-modal").style.display = "flex";
+    return;
+  }
+
+  fetch(`${GAS_URL}?sheet=usuarios`)
     .then(res => res.json())
     .then(usuarios => {
       const encontrou = usuarios.find(u => u.usuario === usuarioInput && u.senha === senhaInput);
@@ -35,7 +42,7 @@ function tentarLoginDireto() {
           iniciarSessao();
         }
       } else {
-        alert("Utilizador ou palavra-passe incorretos. Tente novamente.");
+        alert("Utilizador ou palavra-passe incorretos. Tente novamente ou use as credenciais de primeiro acesso.");
       }
     })
     .catch(err => {
@@ -44,9 +51,8 @@ function tentarLoginDireto() {
     });
 }
 
-// Passo 2: Validar o Código de Segurança inserido
 function validarCodigoSeguranca(event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
   const codigoInput = document.getElementById("sec-code-field").value.trim();
 
   if (codigoInput === CODIGO_SEGURANCA_ESTABELECIDO) {
@@ -58,9 +64,8 @@ function validarCodigoSeguranca(event) {
   }
 }
 
-// Troca Obrigatória de Senha no Primeiro Acesso
 function salvarNovaCredencial(event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
   const novoUsuario = document.getElementById("new-usr-field").value.trim();
   const novaSenha = document.getElementById("new-pwd-field").value.trim();
 
@@ -69,10 +74,8 @@ function salvarNovaCredencial(event) {
     return;
   }
 
-  fetch(`${SHEETDB_URL}/usuario/${usuarioAtual.usuario}?sheet=usuarios`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  if (usuarioAtual && usuarioAtual.isNovoCadastro) {
+    const payloadNovo = {
       data: {
         usuario: novoUsuario,
         senha: novaSenha,
@@ -80,20 +83,52 @@ function salvarNovaCredencial(event) {
         primeiro_acesso: "false",
         permissao: "admin"
       }
+    };
+
+    fetch(`${GAS_URL}?sheet=usuarios`, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payloadNovo)
     })
-  })
-  .then(() => {
-    usuarioAtual.usuario = novoUsuario;
-    usuarioAtual.nome = novoUsuario;
-    usuarioAtual.primeiro_acesso = "false";
-    usuarioAtual.permissao = "admin";
-    document.getElementById("first-access-modal").style.display = "none";
-    iniciarSessao();
-  })
-  .catch(err => console.error("Erro ao atualizar credenciais:", err));
+    .then(() => {
+      usuarioAtual = {
+        usuario: novoUsuario,
+        nome: novoUsuario,
+        primeiro_acesso: "false",
+        permissao: "admin"
+      };
+      document.getElementById("first-access-modal").style.display = "none";
+      alert("Conta criada com sucesso!");
+      iniciarSessao();
+    })
+    .catch(err => console.error("Erro ao cadastrar novo utilizador:", err));
+
+  } else {
+    fetch(`${GAS_URL}?sheet=usuarios&action=UPDATE&usuario=${usuarioAtual.usuario}`, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        data: {
+          usuario: novoUsuario,
+          senha: novaSenha,
+          nome: novoUsuario,
+          primeiro_acesso: "false",
+          permissao: "admin"
+        }
+      })
+    })
+    .then(() => {
+      usuarioAtual.usuario = novoUsuario;
+      usuarioAtual.nome = novoUsuario;
+      usuarioAtual.primeiro_acesso = "false";
+      usuarioAtual.permissao = "admin";
+      document.getElementById("first-access-modal").style.display = "none";
+      iniciarSessao();
+    })
+    .catch(err => console.error("Erro ao atualizar credenciais:", err));
+  }
 }
 
-// Iniciar Aplicação
 function iniciarSessao() {
   document.getElementById("login-modal").style.display = "none";
   document.getElementById("security-code-modal").style.display = "none";
@@ -116,7 +151,6 @@ function logout() {
   document.getElementById("sec-code-field").value = "";
 }
 
-// Controle de Abas
 function mudarAba(aba) {
   const visaoInv = document.getElementById("visao-inventario");
   const visaoHist = document.getElementById("visao-historico");
@@ -137,9 +171,8 @@ function mudarAba(aba) {
   }
 }
 
-// Carregar Inventário (Crítico apenas quando o estoque disponível real for <= 5)
 function carregarItens() {
-  fetch(SHEETDB_URL)
+  fetch(GAS_URL)
     .then(response => response.json())
     .then(data => {
       const tbody = document.getElementById("inventory-body");
@@ -163,7 +196,6 @@ function carregarItens() {
             };
           }
 
-          // Soma apenas se o status NÃO for "disponivel"
           if (!statusItem.includes("disponivel")) {
             itensTotais[nomeChave].somaOcupada += qtdParcial;
           }
@@ -180,7 +212,6 @@ function carregarItens() {
         const info = itensTotais[chave];
         const disponivelReal = info.estoqueTotal - info.somaOcupada;
         
-        // Fica crítico APENAS se o estoque disponível real for <= 5
         if (disponivelReal <= 5) {
           itensCriticos.push(chave);
         }
@@ -194,7 +225,7 @@ function carregarItens() {
           const tr = document.createElement("tr");
           if (ehCritico) tr.classList.add("linha-critica");
 
-          const botaoRemover = `<button class="btn-remover" onclick="removerItem('${item.id}', '${escapeHtml(item.nome)}')">Remover</button>`;
+          const botaoRemover = `<button class="btn-remover" onclick="removerItem('${item.id}', '${escapeHtml(item.nome)}', '${escapeHtml(item.modelo)}')">Remover</button>`;
 
           tr.innerHTML = `
             <td>${item.nome || ""} ${ehCritico ? '<span class="badge-critico">Crítico</span>' : ''}</td>
@@ -228,8 +259,7 @@ function carregarItens() {
     .catch(error => console.error("Erro ao carregar inventário:", error));
 }
 
-// Gravar Histórico
-function registrarHistorico(acao, nomeItem, detalhes) {
+function registrarHistorico(acao, nomeItem, modeloItem, detalhes) {
   const agora = new Date();
   const dataFormatada = agora.toLocaleDateString("pt-BR");
   const horaFormatada = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
@@ -240,22 +270,22 @@ function registrarHistorico(acao, nomeItem, detalhes) {
       usuario: usuarioAtual ? usuarioAtual.nome || usuarioAtual.usuario : "Sistema",
       acao: acao,
       item: nomeItem,
+      modelo: modeloItem || "",
       detalhes: detalhes,
       data: dataFormatada,
       hora: horaFormatada
     }
   };
 
-  fetch(`${SHEETDB_URL}?sheet=historico`, {
+  fetch(`${GAS_URL}?sheet=historico`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(registro)
   }).catch(err => console.error("Erro ao gravar histórico:", err));
 }
 
-// Carregar Histórico
 function carregarHistorico() {
-  fetch(`${SHEETDB_URL}?sheet=historico`)
+  fetch(`${GAS_URL}?sheet=historico`)
     .then(res => res.json())
     .then(dados => {
       const tbody = document.getElementById("history-body");
@@ -269,6 +299,7 @@ function carregarHistorico() {
             <td><strong>${h.usuario || ""}</strong></td>
             <td>${h.acao || ""}</td>
             <td>${h.item || ""}</td>
+            <td>${h.modelo || ""}</td>
             <td>${h.detalhes || ""}</td>
           `;
           tbody.appendChild(tr);
@@ -279,7 +310,6 @@ function carregarHistorico() {
     .catch(err => console.error("Erro ao carregar histórico:", err));
 }
 
-// Preparar Edição
 function prepararEdicao(id, nome, marca, modelo, quantidade, quantidadeEstoque, status, responsavel) {
   itemEmEdicao = {
     id: String(id),
@@ -307,9 +337,8 @@ function prepararEdicao(id, nome, marca, modelo, quantidade, quantidadeEstoque, 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// Salvar ou Editar Item
 function salvarItem(event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
 
   const idExistente = document.getElementById("item-id").value;
   const nome = document.getElementById("nome").value.trim();
@@ -334,6 +363,7 @@ function salvarItem(event) {
   };
 
   if (idExistente) {
+    itemPayload.data.id = idExistente;
     let alteracoes = [];
 
     if (itemEmEdicao) {
@@ -348,14 +378,14 @@ function salvarItem(event) {
 
     const detalheHistorico = alteracoes.length > 0 ? alteracoes.join(" | ") : "Item atualizado sem alterações de campo";
 
-    fetch(`${SHEETDB_URL}/id/${idExistente}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+    fetch(`${GAS_URL}?action=UPDATE&id=${idExistente}`, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(itemPayload)
     })
     .then(() => {
       sincronizarEstoquePorNome(nome, quantidadeEstoque);
-      registrarHistorico("ALTERAÇÃO", nome, detalheHistorico);
+      registrarHistorico("ALTERAÇÃO", nome, modelo, detalheHistorico);
     })
     .catch(err => console.error("Erro ao atualizar item:", err));
 
@@ -363,22 +393,21 @@ function salvarItem(event) {
     const novoId = Date.now().toString().slice(-4);
     itemPayload.data.id = novoId;
 
-    fetch(SHEETDB_URL, {
+    fetch(GAS_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify(itemPayload)
     })
     .then(() => {
       sincronizarEstoquePorNome(nome, quantidadeEstoque);
-      registrarHistorico("ADICIONOU", nome, `Qtd Inicial: ${quantidade}, Estoque: ${quantidadeEstoque}, Status: ${status}`);
+      registrarHistorico("ADICIONOU", nome, modelo, `Qtd Inicial: ${quantidade}, Estoque: ${quantidadeEstoque}, Status: ${status}`);
     })
     .catch(err => console.error("Erro ao cadastrar novo item:", err));
   }
 }
 
-// Sincronizar Estoque Total por Nome
 function sincronizarEstoquePorNome(nomeItem, novoEstoqueTotal) {
-  fetch(SHEETDB_URL)
+  fetch(GAS_URL)
     .then(res => res.json())
     .then(todosItens => {
       const promessas = [];
@@ -386,12 +415,12 @@ function sincronizarEstoquePorNome(nomeItem, novoEstoqueTotal) {
       if (Array.isArray(todosItens)) {
         todosItens.forEach(item => {
           if ((item.nome || "").trim().toLowerCase() === nomeItem.trim().toLowerCase()) {
-            if (item.quantidade_estoque !== novoEstoqueTotal) {
-              const promessa = fetch(`${SHEETDB_URL}/id/${item.id}`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
+            if (String(item.quantidade_estoque) !== String(novoEstoqueTotal)) {
+              const promessa = fetch(`${GAS_URL}?action=UPDATE&id=${item.id}`, {
+                method: "POST",
+                headers: { "Content-Type": "text/plain;charset=utf-8" },
                 body: JSON.stringify({
-                  data: { quantidade_estoque: novoEstoqueTotal }
+                  data: { id: item.id, quantidade_estoque: novoEstoqueTotal }
                 })
               });
               promessas.push(promessa);
@@ -412,8 +441,7 @@ function sincronizarEstoquePorNome(nomeItem, novoEstoqueTotal) {
     });
 }
 
-// Remover Item
-function removerItem(id, nomeItem) {
+function removerItem(id, nomeItem, modeloItem) {
   const senhaConfirmacao = prompt(`Para remover o item "${nomeItem}", insira a palavra-passe de confirmação:`);
 
   if (senhaConfirmacao === null) {
@@ -421,19 +449,22 @@ function removerItem(id, nomeItem) {
   }
 
   if (senhaConfirmacao.trim() === "@Thales2026!") {
-    fetch(`${SHEETDB_URL}/id/${id}`, { method: "DELETE" })
-      .then(() => {
-        registrarHistorico("REMOVEU", nomeItem, "Item removido do inventário");
-        alert(`O item "${nomeItem}" foi removido com sucesso.`);
-        carregarItens();
-      })
-      .catch(err => console.error("Erro ao remover item:", err));
+    fetch(`${GAS_URL}?action=DELETE&id=${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ id: id })
+    })
+    .then(() => {
+      registrarHistorico("REMOVEU", nomeItem, modeloItem, "Item removido do inventário");
+      alert(`O item "${nomeItem}" foi removido com sucesso.`);
+      carregarItens();
+    })
+    .catch(err => console.error("Erro ao remover item:", err));
   } else {
     alert("Palavra-passe incorreta! O item não foi removido.");
   }
 }
 
-// Filtro Inventário
 function filtrarTabela() {
   const input = document.getElementById("search-input");
   if (!input) return;
@@ -447,7 +478,6 @@ function filtrarTabela() {
   }
 }
 
-// Filtro Histórico
 function filtrarHistorico() {
   const input = document.getElementById("search-history-input");
   if (!input) return;
@@ -469,7 +499,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (searchHistoryInput) searchHistoryInput.addEventListener("input", filtrarHistorico);
 });
 
-// Exportação Excel
 function exportarExcel() {
   const visaoInv = document.getElementById("visao-inventario");
   const tabInventarioAtiva = visaoInv.style.display !== "none";
@@ -496,7 +525,7 @@ function exportarExcel() {
   } else {
     const tbody = document.getElementById("history-body");
     const linhas = tbody.getElementsByTagName("tr");
-    dados = [["Data/Hora", "Utilizador", "Ação", "Item", "Detalhes"]];
+    dados = [["Data/Hora", "Utilizador", "Ação", "Item", "Modelo", "Detalhes"]];
 
     for (let i = 0; i < linhas.length; i++) {
       if (linhas[i].style.display !== "none") {
@@ -517,12 +546,10 @@ function exportarExcel() {
   XLSX.writeFile(wb, nomeArquivo);
 }
 
-// Exportação PDF
 function exportarPDF() {
   window.print();
 }
 
-// Resetar Formulário
 function resetarFormulario() {
   document.getElementById("inventory-form").reset();
   document.getElementById("item-id").value = "";
