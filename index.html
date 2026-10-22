@@ -16,7 +16,7 @@
           color: #333;
         }
 
-        /* MODAIS DE LOGIN E TROCA DE SENHA */
+        /* MODAIS DE LOGIN E SEGURANÇA */
         .login-overlay {
           position: fixed;
           top: 0;
@@ -352,7 +352,7 @@
             <h2>THALES</h2>
             <p class="login-subtitle">INFORMATION SYSTEMS<br>Insira suas credenciais para aceder</p>
             
-            <form onsubmit="tentarLogin(event)">
+            <div>
                 <div class="input-group">
                     <label for="usr-field">Utilizador:</label>
                     <input type="text" id="usr-field" required autocomplete="off">
@@ -363,7 +363,24 @@
                     <input type="password" id="pwd-field" required autocomplete="off">
                 </div>
                 
-                <button type="submit" class="btn-login">Entrar</button>
+                <button type="button" onclick="tentarLoginDireto()" class="btn-login">Entrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CÓDIGO DE SEGURANÇA -->
+    <div id="security-code-modal" class="login-overlay" style="display: none;">
+        <div class="login-card">
+            <h2>SEGURANÇA</h2>
+            <p class="login-subtitle">Insira o código de acesso autorizado para continuar.</p>
+            
+            <form onsubmit="validarCodigoSeguranca(event)">
+                <div class="input-group">
+                    <label for="sec-code-field">Código de Acesso:</label>
+                    <input type="password" id="sec-code-field" required autocomplete="off">
+                </div>
+                
+                <button type="submit" class="btn-login">Verificar Código</button>
             </form>
         </div>
     </div>
@@ -492,6 +509,6 @@
         </div>
     </div>
 
-    <script src="script.js?v=4.1"></script>
+    <script src="script.js?v=4.5"></script>
 </body>
 </html>

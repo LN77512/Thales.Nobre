@@ -1,16 +1,22 @@
 // Configuração da API SheetDB
 const SHEETDB_URL = "https://sheetdb.io/api/v1/in9wws1z72a7q";
 
+// Código secreto de segurança exigido apenas no primeiro acesso
+const CODIGO_SEGURANCA_ESTABELECIDO = "07072023";
+
 // Estado da Sessão Atual e Item sob Edição
 let usuarioAtual = null;
 let itemEmEdicao = null;
 
-// Autenticação / Login
-function tentarLogin(event) {
-  event.preventDefault();
-  
+// Passo 1: Autenticação Inicial Direta
+function tentarLoginDireto() {
   const usuarioInput = document.getElementById("usr-field").value.trim();
   const senhaInput = document.getElementById("pwd-field").value.trim();
+
+  if (!usuarioInput || !senhaInput) {
+    alert("Por favor, preencha o utilizador e a palavra-passe.");
+    return;
+  }
 
   fetch(`${SHEETDB_URL}?sheet=usuarios`)
     .then(res => res.json())
@@ -20,9 +26,15 @@ function tentarLogin(event) {
       if (encontrou) {
         usuarioAtual = encontrou;
 
-        if (encontrou.primeiro_acesso === "true" || encontrou.primeiro_acesso === "TRUE") {
-          document.getElementById("login-modal").style.display = "none";
-          document.getElementById("first-access-modal").style.display = "flex";
+        document.getElementById("login-modal").style.display = "none";
+
+        // VERIFICAÇÃO INTELIGENTE: 
+        // O código de segurança e a criação de conta só aparecem se for primeiro acesso (true).
+        // Contas já criadas entram direto no sistema.
+        const ehPrimeiroAcesso = String(usuarioAtual.primeiro_acesso).toLowerCase() === "true";
+
+        if (ehPrimeiroAcesso) {
+          document.getElementById("security-code-modal").style.display = "flex";
         } else {
           iniciarSessao();
         }
@@ -34,6 +46,20 @@ function tentarLogin(event) {
       console.error("Erro ao autenticar:", err);
       alert("Erro de comunicação com o servidor ou credenciais inválidas.");
     });
+}
+
+// Passo 2: Validar o Código de Segurança inserido (Apenas no primeiro acesso)
+function validarCodigoSeguranca(event) {
+  event.preventDefault();
+  const codigoInput = document.getElementById("sec-code-field").value.trim();
+
+  if (codigoInput === CODIGO_SEGURANCA_ESTABELECIDO) {
+    document.getElementById("security-code-modal").style.display = "none";
+    document.getElementById("first-access-modal").style.display = "flex";
+  } else {
+    alert("Código de segurança incorreto! Acesso negado.");
+    document.getElementById("sec-code-field").value = "";
+  }
 }
 
 // Troca Obrigatória de Senha no Primeiro Acesso
@@ -55,7 +81,7 @@ function salvarNovaCredencial(event) {
         usuario: novoUsuario,
         senha: novaSenha,
         nome: novoUsuario,
-        primeiro_acesso: "false",
+        primeiro_acesso: "false", // Torna-se false para nunca mais pedir código nem alteração
         permissao: "admin"
       }
     })
@@ -74,6 +100,7 @@ function salvarNovaCredencial(event) {
 // Iniciar Aplicação
 function iniciarSessao() {
   document.getElementById("login-modal").style.display = "none";
+  document.getElementById("security-code-modal").style.display = "none";
   document.getElementById("first-access-modal").style.display = "none";
   document.getElementById("app-container").style.display = "block";
 
@@ -90,6 +117,7 @@ function logout() {
   document.getElementById("login-modal").style.display = "flex";
   document.getElementById("usr-field").value = "";
   document.getElementById("pwd-field").value = "";
+  document.getElementById("sec-code-field").value = "";
 }
 
 // Controle de Abas
@@ -123,7 +151,6 @@ function carregarItens() {
       
       let itensTotais = {};
 
-      // 1. Agrupar e somar as quantidades parciais de cada linha por nome do produto
       if (Array.isArray(data)) {
         data.forEach((item) => {
           const nome = (item.nome || "").trim();
@@ -145,7 +172,6 @@ function carregarItens() {
 
       let itensCriticos = [];
 
-      // 2. Identificar quais produtos estão críticos (Ex: se o total em estoque for <= 5 ou restante disponível for <= 5)
       Object.keys(itensTotais).forEach(nome => {
         const info = itensTotais[nome];
         const disponivelOuRestante = info.estoqueTotal - info.somaQuantidade;
@@ -155,7 +181,6 @@ function carregarItens() {
         }
       });
 
-      // 3. Renderizar linhas na tabela
       if (Array.isArray(data)) {
         data.forEach((item) => {
           const nomeItem = (item.nome || "").trim();
@@ -185,7 +210,6 @@ function carregarItens() {
         });
       }
 
-      // 4. Atualizar Aviso no Topo
       const alertaDiv = document.getElementById("alerta-estoque");
       if (itensCriticos.length > 0) {
         alertaDiv.style.display = "block";
