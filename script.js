@@ -1,17 +1,15 @@
 // Configuração da API SheetDB
 const SHEETDB_URL = "https://sheetdb.io/api/v1/in9wws1z72a7q";
 
-// Código secreto de segurança exigido no cadastro / primeiro acesso
+// Código secreto de segurança exigido apenas no primeiro acesso
 const CODIGO_SEGURANCA_ESTABELECIDO = "07072023";
 
 // Estado da Sessão Atual e Item sob Edição
 let usuarioAtual = null;
 let itemEmEdicao = null;
 
-// Passo 1: Autenticação Inicial ou Redirecionamento para Criação de Conta
-function tentarLoginDireto(event) {
-  if (event) event.preventDefault();
-
+// Passo 1: Autenticação Inicial Direta
+function tentarLoginDireto() {
   const usuarioInput = document.getElementById("usr-field").value.trim();
   const senhaInput = document.getElementById("pwd-field").value.trim();
 
@@ -20,18 +18,6 @@ function tentarLoginDireto(event) {
     return;
   }
 
-  // FLUXO DE CRIAR CONTA: Se digitar @Thales e @Thales2026!
-  if (usuarioInput === "@Thales" && senhaInput === "@Thales2026!") {
-    usuarioAtual = {
-      usuario: "@Thales_TEMP",
-      isNovoCadastro: true
-    };
-    document.getElementById("login-modal").style.display = "none";
-    document.getElementById("security-code-modal").style.display = "flex";
-    return;
-  }
-
-  // FLUXO DE LOGIN NORMAL
   fetch(`${SHEETDB_URL}?sheet=usuarios`)
     .then(res => res.json())
     .then(usuarios => {
@@ -49,7 +35,7 @@ function tentarLoginDireto(event) {
           iniciarSessao();
         }
       } else {
-        alert("Utilizador ou palavra-passe incorretos. Tente novamente ou use as credenciais de primeiro acesso.");
+        alert("Utilizador ou palavra-passe incorretos. Tente novamente.");
       }
     })
     .catch(err => {
@@ -60,7 +46,7 @@ function tentarLoginDireto(event) {
 
 // Passo 2: Validar o Código de Segurança inserido
 function validarCodigoSeguranca(event) {
-  if (event) event.preventDefault();
+  event.preventDefault();
   const codigoInput = document.getElementById("sec-code-field").value.trim();
 
   if (codigoInput === CODIGO_SEGURANCA_ESTABELECIDO) {
@@ -72,9 +58,9 @@ function validarCodigoSeguranca(event) {
   }
 }
 
-// Passo 3: Definir Novo Utilizador e Palavra-passe
+// Troca Obrigatória de Senha no Primeiro Acesso
 function salvarNovaCredencial(event) {
-  if (event) event.preventDefault();
+  event.preventDefault();
   const novoUsuario = document.getElementById("new-usr-field").value.trim();
   const novaSenha = document.getElementById("new-pwd-field").value.trim();
 
@@ -83,9 +69,10 @@ function salvarNovaCredencial(event) {
     return;
   }
 
-  // Se for uma conta totalmente nova criada via @Thales e @Thales2026!
-  if (usuarioAtual && usuarioAtual.isNovoCadastro) {
-    const payloadNovo = {
+  fetch(`${SHEETDB_URL}/usuario/${usuarioAtual.usuario}?sheet=usuarios`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
       data: {
         usuario: novoUsuario,
         senha: novaSenha,
@@ -93,51 +80,17 @@ function salvarNovaCredencial(event) {
         primeiro_acesso: "false",
         permissao: "admin"
       }
-    };
-
-    fetch(`${SHEETDB_URL}?sheet=usuarios`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payloadNovo)
     })
-    .then(() => {
-      usuarioAtual = {
-        usuario: novoUsuario,
-        nome: novoUsuario,
-        primeiro_acesso: "false",
-        permissao: "admin"
-      };
-      document.getElementById("first-access-modal").style.display = "none";
-      alert("Conta criada com sucesso!");
-      iniciarSessao();
-    })
-    .catch(err => console.error("Erro ao cadastrar novo utilizador:", err));
-
-  } else {
-    // Atualização de credencial para conta já pré-existente
-    fetch(`${SHEETDB_URL}/usuario/${usuarioAtual.usuario}?sheet=usuarios`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        data: {
-          usuario: novoUsuario,
-          senha: novaSenha,
-          nome: novoUsuario,
-          primeiro_acesso: "false",
-          permissao: "admin"
-        }
-      })
-    })
-    .then(() => {
-      usuarioAtual.usuario = novoUsuario;
-      usuarioAtual.nome = novoUsuario;
-      usuarioAtual.primeiro_acesso = "false";
-      usuarioAtual.permissao = "admin";
-      document.getElementById("first-access-modal").style.display = "none";
-      iniciarSessao();
-    })
-    .catch(err => console.error("Erro ao atualizar credenciais:", err));
-  }
+  })
+  .then(() => {
+    usuarioAtual.usuario = novoUsuario;
+    usuarioAtual.nome = novoUsuario;
+    usuarioAtual.primeiro_acesso = "false";
+    usuarioAtual.permissao = "admin";
+    document.getElementById("first-access-modal").style.display = "none";
+    iniciarSessao();
+  })
+  .catch(err => console.error("Erro ao atualizar credenciais:", err));
 }
 
 // Iniciar Aplicação
@@ -184,7 +137,7 @@ function mudarAba(aba) {
   }
 }
 
-// Carregar Inventário
+// Carregar Inventário (Crítico apenas quando o estoque disponível real for <= 5)
 function carregarItens() {
   fetch(SHEETDB_URL)
     .then(response => response.json())
@@ -210,6 +163,7 @@ function carregarItens() {
             };
           }
 
+          // Soma apenas se o status NÃO for "disponivel"
           if (!statusItem.includes("disponivel")) {
             itensTotais[nomeChave].somaOcupada += qtdParcial;
           }
@@ -226,6 +180,7 @@ function carregarItens() {
         const info = itensTotais[chave];
         const disponivelReal = info.estoqueTotal - info.somaOcupada;
         
+        // Fica crítico APENAS se o estoque disponível real for <= 5
         if (disponivelReal <= 5) {
           itensCriticos.push(chave);
         }
@@ -354,7 +309,7 @@ function prepararEdicao(id, nome, marca, modelo, quantidade, quantidadeEstoque, 
 
 // Salvar ou Editar Item
 function salvarItem(event) {
-  if (event) event.preventDefault();
+  event.preventDefault();
 
   const idExistente = document.getElementById("item-id").value;
   const nome = document.getElementById("nome").value.trim();
