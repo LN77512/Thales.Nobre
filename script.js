@@ -81,7 +81,6 @@ function validarCodigoSeguranca(event) {
     return;
   }
 
-  // Validação segura feita no servidor (Apps Script), invisível no F12
   fetch(`${GAS_URL}?action=VALIDAR_CODIGO&codigo=${encodeURIComponent(codigoInput)}`, {
     method: "POST",
     headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -440,12 +439,15 @@ function salvarItem(event) {
   if (idExistente) {
     let alteracoes = [];
     if (itemEmEdicao) {
-      if (itemEmEdicao.status !== status) alteracoes.push(`Status: ${itemEmEdicao.status} ➔ ${status}`);
+      if (itemEmEdicao.nome !== nome) alteracoes.push(`Nome: ${itemEmEdicao.nome} ➔ ${nome}`);
+      if (itemEmEdicao.marca !== marca) alteracoes.push(`Marca: ${itemEmEdicao.marca} ➔ ${marca}`);
+      if (itemEmEdicao.modelo !== modelo) alteracoes.push(`Modelo: ${itemEmEdicao.modelo} ➔ ${modelo}`);
       if (itemEmEdicao.quantidade !== quantidade) alteracoes.push(`Qtd: ${itemEmEdicao.quantidade} ➔ ${quantidade}`);
       if (itemEmEdicao.quantidade_estoque !== quantidadeEstoque) alteracoes.push(`Estoque: ${itemEmEdicao.quantidade_estoque} ➔ ${quantidadeEstoque}`);
+      if (itemEmEdicao.status !== status) alteracoes.push(`Status: ${itemEmEdicao.status} ➔ ${status}`);
       if (itemEmEdicao.responsavel !== responsavel) alteracoes.push(`Resp: ${itemEmEdicao.responsavel} ➔ ${responsavel}`);
     }
-    const detalheHistorico = alteracoes.length > 0 ? alteracoes.join(" | ") : "Item atualizado";
+    const detalheHistorico = alteracoes.length > 0 ? alteracoes.join(" | ") : "Nenhuma alteração detectada";
 
     fetch(`${GAS_URL}?action=UPDATE&id=${idExistente}`, {
       method: "POST",
