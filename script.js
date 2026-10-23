@@ -231,13 +231,15 @@ function atualizarDashboard(data) {
 
   if (Array.isArray(data)) {
     data.forEach(item => {
+      const qtd = parseInt(item.quantidade || 0);
       const status = (item.status || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      
       if (status.includes("disponivel")) {
-        disponivel++;
+        disponivel += qtd;
       } else if (status.includes("manutencao")) {
-        manutencao++;
+        manutencao += qtd;
       } else {
-        emUso++;
+        emUso += qtd;
       }
     });
   }
@@ -259,7 +261,7 @@ function atualizarDashboard(data) {
       responsive: true,
       plugins: {
         legend: { position: 'bottom' },
-        title: { display: true, text: 'Proporção de Status do Inventário' }
+        title: { display: true, text: `Proporção por Quantidade (Total: ${disponivel + emUso + manutencao} peças)` }
       }
     }
   });
