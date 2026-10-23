@@ -282,6 +282,7 @@ function carregarItens() {
 
       dadosInventarioGlobal = data;
 
+      // Ordenar por Nome, Marca e Modelo para agrupar itens iguais juntos
       data.sort((a, b) => {
         let nomeA = (a.nome || "").trim().toLowerCase();
         let nomeB = (b.nome || "").trim().toLowerCase();
