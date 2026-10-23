@@ -1,4 +1,4 @@
-      return `${partesData[2]}/${partesData[1]}/${partesData[0]}`;const GAS_URL = "https://script.google.com/macros/s/AKfycbxAvmBtLUPQpeiJepc6xYhB-2vH60TnJUBnmVDtgaQcIBj124BpYSB3sH6bu3zRY6ubjA/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxAvmBtLUPQpeiJepc6xYhB-2vH60TnJUBnmVDtgaQcIBj124BpYSB3sH6bu3zRY6ubjA/exec";
 
 let usuarioAtual = null;
 let itemEmEdicao = null;
@@ -301,7 +301,6 @@ function carregarItens() {
       
       let itensTotais = {};
 
-      // 1ª Passagem: Calcular o Estoque Total unificado e a soma ocupada por grupo (Nome + Marca + Modelo)
       data.forEach((item) => {
         const nomeVal = (item.nome || "").trim().toLowerCase();
         const marcaVal = (item.marca || "").trim().toLowerCase();
@@ -325,7 +324,6 @@ function carregarItens() {
           itensTotais[chaveGrupo].somaOcupada += qtdParcial;
         }
 
-        // Pega o maior valor de estoque total informado entre os registos do grupo
         if (qtdEstoqueTotal > itensTotais[chaveGrupo].estoqueTotal) {
           itensTotais[chaveGrupo].estoqueTotal = qtdEstoqueTotal;
         }
@@ -342,7 +340,6 @@ function carregarItens() {
         }
       });
 
-      // 2ª Passagem: Renderizar linhas aplicando o Estoque Total unificado do grupo
       data.forEach((item) => {
         const nomeVal = (item.nome || "").trim().toLowerCase();
         const marcaVal = (item.marca || "").trim().toLowerCase();
@@ -725,7 +722,7 @@ function exportarExcel() {
   const visaoInv = document.getElementById("visao-inventario");
   const tabInventarioAtiva = visaoInv.style.display !== "none";
 
-  Let dados = [];
+  let dados = [];
   let nomeArquivo = "";
 
   if (tabInventarioAtiva) {
