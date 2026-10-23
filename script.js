@@ -225,22 +225,50 @@ function atualizarDashboard(data) {
   const ctx = document.getElementById('statusChart');
   if (!ctx) return;
 
-  let disponivel = 0;
-  let emUso = 0;
-  let manutencao = 0;
+  let totalDisponivel = 0;
+  let totalEmUso = 0;
+  let totalManutencao = 0;
+  let grupos = {};
 
   if (Array.isArray(data)) {
     data.forEach(item => {
+      const nomeVal = (item.nome || "").trim().toLowerCase();
+      const marcaVal = (item.marca || "").trim().toLowerCase();
+      const modeloVal = (item.modelo || "").trim().toLowerCase();
+      if (!nomeVal) return;
+      const chaveGrupo = `${nomeVal}_${marcaVal}_${modeloVal}`;
+
       const qtd = parseInt(item.quantidade || 0);
+      const qtdEstoqueTotal = parseInt(item.quantidade_estoque || 0);
       const status = (item.status || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-      
-      if (status.includes("disponivel")) {
-        disponivel += qtd;
-      } else if (status.includes("manutencao")) {
-        manutencao += qtd;
-      } else {
-        emUso += qtd;
+
+      if (!grupos[chaveGrupo]) {
+        grupos[chaveGrupo] = {
+          estoqueTotal: 0,
+          manutencao: 0,
+          emUso: 0
+        };
       }
+
+      if (qtdEstoqueTotal > grupos[chaveGrupo].estoqueTotal) {
+        grupos[chaveGrupo].estoqueTotal = qtdEstoqueTotal;
+      }
+
+      if (status.includes("manutencao")) {
+        grupos[chaveGrupo].manutencao += qtd;
+      } else if (!status.includes("disponivel")) {
+        grupos[chaveGrupo].emUso += qtd;
+      }
+    });
+
+    Object.keys(grupos).forEach(chave => {
+      const g = grupos[chave];
+      const ocupado = g.manutencao + g.emUso;
+      const disponivelReal = Math.max(0, g.estoqueTotal - ocupado);
+
+      totalDisponivel += disponivelReal;
+      totalEmUso += g.emUso;
+      totalManutencao += g.manutencao;
     });
   }
 
@@ -248,16 +276,18 @@ function atualizarDashboard(data) {
     meuGraficoStatus.destroy();
   }
 
+  const totalGeralPecas = totalDisponivel + totalEmUso + totalManutencao;
+
   meuGraficoStatus = new Chart(ctx, {
     type: 'doughnut',
     data: {
       labels: [
-        `Disponível (${disponivel})`,
-        `Em Uso (${emUso})`,
-        `Manutenção (${manutencao})`
+        `Disponível (${totalDisponivel})`,
+        `Em Uso (${totalEmUso})`,
+        `Manutenção (${totalManutencao})`
       ],
       datasets: [{
-        data: [disponivel, emUso, manutencao],
+        data: [totalDisponivel, totalEmUso, totalManutencao],
         backgroundColor: ['#28a745', '#002b5c', '#fd7e14']
       }]
     },
@@ -265,7 +295,7 @@ function atualizarDashboard(data) {
       responsive: true,
       plugins: {
         legend: { position: 'bottom' },
-        title: { display: true, text: `Proporção por Quantidade (Total: ${disponivel + emUso + manutencao} peças)` }
+        title: { display: true, text: `Proporção por Quantidade (Total: ${totalGeralPecas} peças)` }
       }
     }
   });
