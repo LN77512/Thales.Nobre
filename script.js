@@ -270,6 +270,23 @@ function carregarItens() {
     .then(response => response.json())
     .then(data => {
       dadosInventarioGlobal = data;
+
+      if (Array.isArray(data)) {
+        data.sort((a, b) => {
+          let nomeA = (a.nome || "").trim().toLowerCase();
+          let nomeB = (b.nome || "").trim().toLowerCase();
+          if (nomeA !== nomeB) return nomeA.localeCompare(nomeB);
+
+          let marcaA = (a.marca || "").trim().toLowerCase();
+          let marcaB = (b.marca || "").trim().toLowerCase();
+          if (marcaA !== marcaB) return marcaA.localeCompare(marcaB);
+
+          let modeloA = (a.modelo || "").trim().toLowerCase();
+          let modeloB = (b.modelo || "").trim().toLowerCase();
+          return modeloA.localeCompare(modeloB);
+        });
+      }
+
       const tbody = document.getElementById("inventory-body");
       tbody.innerHTML = "";
       
@@ -618,7 +635,7 @@ function recalcularCriticosLocalmente() {
     const nomeChave = nomeOriginal.toLowerCase();
     const qtd = parseInt(colunas[3].textContent) || 0;
     const estoqueTotal = parseInt(colunas[4].textContent) || 0;
-    const status = colunas[5].textContent.trim().toLowerCase();
+    const status = colunas[5].textContent.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
     if (!totais[nomeChave]) {
       totais[nomeChave] = { nomeOriginal: nomeOriginal, somaOcupada: 0, estoqueTotal: estoqueTotal };
