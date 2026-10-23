@@ -251,7 +251,11 @@ function atualizarDashboard(data) {
   meuGraficoStatus = new Chart(ctx, {
     type: 'doughnut',
     data: {
-      labels: ['Disponível', 'Em Uso', 'Manutenção'],
+      labels: [
+        `Disponível (${disponivel})`,
+        `Em Uso (${emUso})`,
+        `Manutenção (${manutencao})`
+      ],
       datasets: [{
         data: [disponivel, emUso, manutencao],
         backgroundColor: ['#28a745', '#002b5c', '#fd7e14']
