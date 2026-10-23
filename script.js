@@ -269,54 +269,55 @@ function carregarItens() {
   fetch(GAS_URL)
     .then(response => response.json())
     .then(data => {
+      if (!Array.isArray(data)) {
+        console.error("Dados inválidos recebidos do servidor:", data);
+        return;
+      }
+
       dadosInventarioGlobal = data;
 
-      if (Array.isArray(data)) {
-        data.sort((a, b) => {
-          let nomeA = (a.nome || "").trim().toLowerCase();
-          let nomeB = (b.nome || "").trim().toLowerCase();
-          if (nomeA !== nomeB) return nomeA.localeCompare(nomeB);
+      data.sort((a, b) => {
+        let nomeA = (a.nome || "").trim().toLowerCase();
+        let nomeB = (b.nome || "").trim().toLowerCase();
+        if (nomeA !== nomeB) return nomeA.localeCompare(nomeB);
 
-          let marcaA = (a.marca || "").trim().toLowerCase();
-          let marcaB = (b.marca || "").trim().toLowerCase();
-          if (marcaA !== marcaB) return marcaA.localeCompare(marcaB);
+        let marcaA = (a.marca || "").trim().toLowerCase();
+        let marcaB = (b.marca || "").trim().toLowerCase();
+        if (marcaA !== marcaB) return marcaA.localeCompare(marcaB);
 
-          let modeloA = (a.modelo || "").trim().toLowerCase();
-          let modeloB = (b.modelo || "").trim().toLowerCase();
-          return modeloA.localeCompare(modeloB);
-        });
-      }
+        let modeloA = (a.modelo || "").trim().toLowerCase();
+        let modeloB = (b.modelo || "").trim().toLowerCase();
+        return modeloA.localeCompare(modeloB);
+      });
 
       const tbody = document.getElementById("inventory-body");
       tbody.innerHTML = "";
       
       let itensTotais = {};
 
-      if (Array.isArray(data)) {
-        data.forEach((item) => {
-          const nomeChave = (item.nome || "").trim().toLowerCase();
-          const qtdParcial = parseInt(item.quantidade || 0);
-          const qtdEstoqueTotal = parseInt(item.quantidade_estoque || 0);
-          const statusItem = (item.status || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      data.forEach((item) => {
+        const nomeChave = (item.nome || "").trim().toLowerCase();
+        const qtdParcial = parseInt(item.quantidade || 0);
+        const qtdEstoqueTotal = parseInt(item.quantidade_estoque || 0);
+        const statusItem = (item.status || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-          if (!nomeChave) return;
+        if (!nomeChave) return;
 
-          if (!itensTotais[nomeChave]) {
-            itensTotais[nomeChave] = {
-              somaOcupada: 0,
-              estoqueTotal: qtdEstoqueTotal
-            };
-          }
+        if (!itensTotais[nomeChave]) {
+          itensTotais[nomeChave] = {
+            somaOcupada: 0,
+            estoqueTotal: qtdEstoqueTotal
+          };
+        }
 
-          if (!statusItem.includes("disponivel")) {
-            itensTotais[nomeChave].somaOcupada += qtdParcial;
-          }
+        if (!statusItem.includes("disponivel")) {
+          itensTotais[nomeChave].somaOcupada += qtdParcial;
+        }
 
-          if (qtdEstoqueTotal > 0) {
-            itensTotais[nomeChave].estoqueTotal = qtdEstoqueTotal;
-          }
-        });
-      }
+        if (qtdEstoqueTotal > 0) {
+          itensTotais[nomeChave].estoqueTotal = qtdEstoqueTotal;
+        }
+      });
 
       let itensCriticos = [];
 
@@ -329,34 +330,32 @@ function carregarItens() {
         }
       });
 
-      if (Array.isArray(data)) {
-        data.forEach((item) => {
-          const nomeChave = (item.nome || "").trim().toLowerCase();
-          const ehCritico = itensCriticos.includes(nomeChave);
+      data.forEach((item) => {
+        const nomeChave = (item.nome || "").trim().toLowerCase();
+        const ehCritico = itensCriticos.includes(nomeChave);
 
-          const tr = document.createElement("tr");
-          if (ehCritico) tr.classList.add("linha-critica");
+        const tr = document.createElement("tr");
+        if (ehCritico) tr.classList.add("linha-critica");
 
-          const botaoRemover = `<button class="btn-remover" onclick="removerItem('${item.id}', '${escapeHtml(item.nome)}', '${escapeHtml(item.modelo)}')">Remover</button>`;
+        const botaoRemover = `<button class="btn-remover" onclick="removerItem('${item.id}', '${escapeHtml(item.nome)}', '${escapeHtml(item.modelo)}')">Remover</button>`;
 
-          tr.innerHTML = `
-            <td>${item.nome || ""} ${ehCritico ? '<span class="badge-critico">Crítico</span>' : ''}</td>
-            <td>${item.marca || ""}</td>
-            <td>${item.modelo || ""}</td>
-            <td>${item.quantidade || "0"}</td>
-            <td>${item.quantidade_estoque || "0"}</td>
-            <td>${item.status || ""}</td>
-            <td>${item.responsavel || ""}</td>
-            <td>${formatarDataExibicao(item.data)}</td>
-            <td>${formatarHoraExibicao(item.hora)}</td>
-            <td class="col-acoes">
-              <button class="btn-editar" onclick="prepararEdicao('${item.id}', '${escapeHtml(item.nome)}', '${escapeHtml(item.marca)}', '${escapeHtml(item.modelo)}', '${item.quantidade}', '${item.quantidade_estoque}', '${item.status}', '${escapeHtml(item.responsavel)}')">Editar</button>
-              ${botaoRemover}
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
+        tr.innerHTML = `
+          <td>${item.nome || ""} ${ehCritico ? '<span class="badge-critico">Crítico</span>' : ''}</td>
+          <td>${item.marca || ""}</td>
+          <td>${item.modelo || ""}</td>
+          <td>${item.quantidade || "0"}</td>
+          <td>${item.quantidade_estoque || "0"}</td>
+          <td>${item.status || ""}</td>
+          <td>${item.responsavel || ""}</td>
+          <td>${formatarDataExibicao(item.data)}</td>
+          <td>${formatarHoraExibicao(item.hora)}</td>
+          <td class="col-acoes">
+            <button class="btn-editar" onclick="prepararEdicao('${item.id}', '${escapeHtml(item.nome)}', '${escapeHtml(item.marca)}', '${escapeHtml(item.modelo)}', '${item.quantidade}', '${item.quantidade_estoque}', '${item.status}', '${escapeHtml(item.responsavel)}')">Editar</button>
+            ${botaoRemover}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
 
       const alertaDiv = document.getElementById("alerta-estoque");
       if (alertaDiv) {
