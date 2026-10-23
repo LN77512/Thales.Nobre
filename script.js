@@ -282,7 +282,6 @@ function carregarItens() {
 
       dadosInventarioGlobal = data;
 
-      // Ordenar por Nome, Marca e Modelo para agrupar itens iguais juntos
       data.sort((a, b) => {
         let nomeA = (a.nome || "").trim().toLowerCase();
         let nomeB = (b.nome || "").trim().toLowerCase();
@@ -375,6 +374,11 @@ function carregarItens() {
       }
 
       filtrarTabela();
+
+      const chartModal = document.getElementById("chart-modal");
+      if (chartModal && chartModal.style.display === "flex") {
+        atualizarDashboard(dadosInventarioGlobal);
+      }
     })
     .catch(error => console.error("Erro ao carregar inventário:", error));
 }
@@ -492,48 +496,9 @@ function salvarItem(event) {
   const dataAtual = agora.toLocaleDateString('pt-BR');
   const horaAtual = agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
-  const tbody = document.getElementById("inventory-body");
   const tempId = idExistente || Date.now().toString().slice(-4);
 
-  const nomeLower = nome.toLowerCase();
-  const linhas = tbody.getElementsByTagName("tr");
-  for (let i = 0; i < linhas.length; i++) {
-    const colunas = linhas[i].getElementsByTagName("td");
-    if (colunas.length < 7) continue;
-    const nomeLinha = colunas[0].textContent.replace("Crítico", "").trim().toLowerCase();
-    if (nomeLinha === nomeLower) {
-      colunas[4].textContent = quantidadeEstoque;
-    }
-  }
-
-  const tr = document.createElement("tr");
-  tr.innerHTML = `
-    <td>${nome}</td>
-    <td>${marca}</td>
-    <td>${modelo}</td>
-    <td>${quantidade}</td>
-    <td>${quantidadeEstoque}</td>
-    <td>${status}</td>
-    <td>${responsavel}</td>
-    <td>${dataAtual}</td>
-    <td>${horaAtual}</td>
-    <td class="col-acoes">
-      <button class="btn-editar" onclick="prepararEdicao('${tempId}', '${escapeHtml(nome)}', '${escapeHtml(marca)}', '${escapeHtml(modelo)}', '${quantidade}', '${quantidadeEstoque}', '${status}', '${escapeHtml(responsavel)}')">Editar</button>
-      <button class="btn-remover" onclick="removerItem('${tempId}', '${escapeHtml(nome)}', '${escapeHtml(modelo)}')">Remover</button>
-    </td>
-  `;
-
-  if (idExistente) {
-    for (let i = 0; i < linhas.length; i++) {
-      if (linhas[i].innerHTML.includes(`prepararEdicao('${idExistente}'`)) {
-        linhas[i].remove();
-        break;
-      }
-    }
-  }
-  tbody.insertBefore(tr, tbody.firstChild);
   resetarFormulario();
-  recalcularCriticosLocalmente();
 
   const itemPayload = {
     data: {
@@ -565,6 +530,7 @@ function salvarItem(event) {
     })
     .then(() => {
       registrarHistorico("ALTERAÇÃO", nome, modelo, detalheHistorico);
+      carregarItens(); // 🔄 Atualiza o inventário e o gráfico na hora sem precisar de F5
     })
     .catch(err => console.error("Erro ao atualizar item:", err));
 
@@ -576,6 +542,7 @@ function salvarItem(event) {
     })
     .then(() => {
       registrarHistorico("ADICIONOU", nome, modelo, `Qtd Inicial: ${quantidade}, Estoque: ${quantidadeEstoque}, Status: ${status}`);
+      carregarItens(); // 🔄 Atualiza o inventário e o gráfico na hora sem precisar de F5
     })
     .catch(err => console.error("Erro ao cadastrar novo item:", err));
   }
@@ -602,16 +569,6 @@ function confirmarRemocaoModal(event) {
     const { id, nomeItem, modeloItem } = itemParaDeletarTemp;
     fecharModalDelecao();
 
-    const tbody = document.getElementById("inventory-body");
-    const linhas = tbody.getElementsByTagName("tr");
-    for (let i = 0; i < linhas.length; i++) {
-      if (linhas[i].innerHTML.includes(`removerItem('${id}'`)) {
-        linhas[i].remove();
-        break;
-      }
-    }
-    recalcularCriticosLocalmente();
-
     fetch(`${GAS_URL}?action=DELETE&id=${id}`, {
       method: "POST",
       headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -619,6 +576,7 @@ function confirmarRemocaoModal(event) {
     })
     .then(() => {
       registrarHistorico("REMOVEU", nomeItem, modeloItem, "Item removido do inventário");
+      carregarItens(); // 🔄 Atualiza o inventário e o gráfico na hora sem precisar de F5
       alert(`O item "${nomeItem}" foi removido com sucesso.`);
     })
     .catch(err => console.error("Erro ao remover item:", err));
