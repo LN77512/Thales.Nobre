@@ -302,26 +302,30 @@ function carregarItens() {
       let itensTotais = {};
 
       data.forEach((item) => {
-        const nomeChave = (item.nome || "").trim().toLowerCase();
+        const nomeVal = (item.nome || "").trim().toLowerCase();
+        const marcaVal = (item.marca || "").trim().toLowerCase();
+        const modeloVal = (item.modelo || "").trim().toLowerCase();
+        
+        if (!nomeVal) return;
+        const chaveGrupo = `${nomeVal}_${marcaVal}_${modeloVal}`;
+
         const qtdParcial = parseInt(item.quantidade || 0);
         const qtdEstoqueTotal = parseInt(item.quantidade_estoque || 0);
         const statusItem = (item.status || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-        if (!nomeChave) return;
-
-        if (!itensTotais[nomeChave]) {
-          itensTotais[nomeChave] = {
+        if (!itensTotais[chaveGrupo]) {
+          itensTotais[chaveGrupo] = {
             somaOcupada: 0,
             estoqueTotal: qtdEstoqueTotal
           };
         }
 
         if (!statusItem.includes("disponivel")) {
-          itensTotais[nomeChave].somaOcupada += qtdParcial;
+          itensTotais[chaveGrupo].somaOcupada += qtdParcial;
         }
 
         if (qtdEstoqueTotal > 0) {
-          itensTotais[nomeChave].estoqueTotal = qtdEstoqueTotal;
+          itensTotais[chaveGrupo].estoqueTotal = qtdEstoqueTotal;
         }
       });
 
@@ -337,8 +341,11 @@ function carregarItens() {
       });
 
       data.forEach((item) => {
-        const nomeChave = (item.nome || "").trim().toLowerCase();
-        const ehCritico = itensCriticos.includes(nomeChave);
+        const nomeVal = (item.nome || "").trim().toLowerCase();
+        const marcaVal = (item.marca || "").trim().toLowerCase();
+        const modeloVal = (item.modelo || "").trim().toLowerCase();
+        const chaveGrupo = `${nomeVal}_${marcaVal}_${modeloVal}`;
+        const ehCritico = itensCriticos.includes(chaveGrupo);
 
         const tr = document.createElement("tr");
         if (ehCritico) tr.classList.add("linha-critica");
@@ -530,7 +537,7 @@ function salvarItem(event) {
     })
     .then(() => {
       registrarHistorico("ALTERAÇÃO", nome, modelo, detalheHistorico);
-      carregarItens(); // 🔄 Atualiza o inventário e o gráfico na hora sem precisar de F5
+      carregarItens(); 
     })
     .catch(err => console.error("Erro ao atualizar item:", err));
 
@@ -542,7 +549,7 @@ function salvarItem(event) {
     })
     .then(() => {
       registrarHistorico("ADICIONOU", nome, modelo, `Qtd Inicial: ${quantidade}, Estoque: ${quantidadeEstoque}, Status: ${status}`);
-      carregarItens(); // 🔄 Atualiza o inventário e o gráfico na hora sem precisar de F5
+      carregarItens(); 
     })
     .catch(err => console.error("Erro ao cadastrar novo item:", err));
   }
@@ -576,7 +583,7 @@ function confirmarRemocaoModal(event) {
     })
     .then(() => {
       registrarHistorico("REMOVEU", nomeItem, modeloItem, "Item removido do inventário");
-      carregarItens(); // 🔄 Atualiza o inventário e o gráfico na hora sem precisar de F5
+      carregarItens(); 
       alert(`O item "${nomeItem}" foi removido com sucesso.`);
     })
     .catch(err => console.error("Erro ao remover item:", err));
@@ -596,20 +603,23 @@ function recalcularCriticosLocalmente() {
     if (colunas.length < 7) continue;
     
     const nomeOriginal = colunas[0].textContent.replace("Crítico", "").trim();
-    const nomeChave = nomeOriginal.toLowerCase();
+    const marcaOriginal = colunas[1].textContent.trim();
+    const modeloOriginal = colunas[2].textContent.trim();
+    const chaveGrupo = `${nomeOriginal.toLowerCase()}_${marcaOriginal.toLowerCase()}_${modeloOriginal.toLowerCase()}`;
+    
     const qtd = parseInt(colunas[3].textContent) || 0;
     const estoqueTotal = parseInt(colunas[4].textContent) || 0;
     const status = colunas[5].textContent.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
-    if (!totais[nomeChave]) {
-      totais[nomeChave] = { nomeOriginal: nomeOriginal, somaOcupada: 0, estoqueTotal: estoqueTotal };
+    if (!totais[chaveGrupo]) {
+      totais[chaveGrupo] = { nomeOriginal: nomeOriginal, somaOcupada: 0, estoqueTotal: estoqueTotal };
     }
 
     if (!status.includes("disponivel")) {
-      totais[nomeChave].somaOcupada += qtd;
+      totais[chaveGrupo].somaOcupada += qtd;
     }
     if (estoqueTotal > 0) {
-      totais[nomeChave].estoqueTotal = estoqueTotal;
+      totais[chaveGrupo].estoqueTotal = estoqueTotal;
     }
   }
 
@@ -619,8 +629,10 @@ function recalcularCriticosLocalmente() {
     if (colunas.length < 7) continue;
 
     const nomeOriginal = colunas[0].textContent.replace("Crítico", "").trim();
-    const nomeChave = nomeOriginal.toLowerCase();
-    const info = totais[nomeChave];
+    const marcaOriginal = colunas[1].textContent.trim();
+    const modeloOriginal = colunas[2].textContent.trim();
+    const chaveGrupo = `${nomeOriginal.toLowerCase()}_${marcaOriginal.toLowerCase()}_${modeloOriginal.toLowerCase()}`;
+    const info = totais[chaveGrupo];
     
     if (info) {
       const disponivelReal = info.estoqueTotal - info.somaOcupada;
