@@ -1,4 +1,4 @@
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxAvmBtLUPQpeiJepc6xYhB-2vH60TnJUBnmVDtgaQcIBj124BpYSB3sH6bu3zRY6ubjA/exec";
+      return `${partesData[2]}/${partesData[1]}/${partesData[0]}`;const GAS_URL = "https://script.google.com/macros/s/AKfycbxAvmBtLUPQpeiJepc6xYhB-2vH60TnJUBnmVDtgaQcIBj124BpYSB3sH6bu3zRY6ubjA/exec";
 
 let usuarioAtual = null;
 let itemEmEdicao = null;
@@ -301,6 +301,7 @@ function carregarItens() {
       
       let itensTotais = {};
 
+      // 1ª Passagem: Calcular o Estoque Total unificado e a soma ocupada por grupo (Nome + Marca + Modelo)
       data.forEach((item) => {
         const nomeVal = (item.nome || "").trim().toLowerCase();
         const marcaVal = (item.marca || "").trim().toLowerCase();
@@ -316,7 +317,7 @@ function carregarItens() {
         if (!itensTotais[chaveGrupo]) {
           itensTotais[chaveGrupo] = {
             somaOcupada: 0,
-            estoqueTotal: qtdEstoqueTotal
+            estoqueTotal: 0
           };
         }
 
@@ -324,7 +325,8 @@ function carregarItens() {
           itensTotais[chaveGrupo].somaOcupada += qtdParcial;
         }
 
-        if (qtdEstoqueTotal > 0) {
+        // Pega o maior valor de estoque total informado entre os registos do grupo
+        if (qtdEstoqueTotal > itensTotais[chaveGrupo].estoqueTotal) {
           itensTotais[chaveGrupo].estoqueTotal = qtdEstoqueTotal;
         }
       });
@@ -340,11 +342,13 @@ function carregarItens() {
         }
       });
 
+      // 2ª Passagem: Renderizar linhas aplicando o Estoque Total unificado do grupo
       data.forEach((item) => {
         const nomeVal = (item.nome || "").trim().toLowerCase();
         const marcaVal = (item.marca || "").trim().toLowerCase();
         const modeloVal = (item.modelo || "").trim().toLowerCase();
         const chaveGrupo = `${nomeVal}_${marcaVal}_${modeloVal}`;
+        const info = itensTotais[chaveGrupo] || { estoqueTotal: 0, somaOcupada: 0 };
         const ehCritico = itensCriticos.includes(chaveGrupo);
 
         const tr = document.createElement("tr");
@@ -357,13 +361,13 @@ function carregarItens() {
           <td>${item.marca || ""}</td>
           <td>${item.modelo || ""}</td>
           <td>${item.quantidade || "0"}</td>
-          <td>${item.quantidade_estoque || "0"}</td>
+          <td>${info.estoqueTotal || "0"}</td>
           <td>${item.status || ""}</td>
           <td>${item.responsavel || ""}</td>
           <td>${formatarDataExibicao(item.data)}</td>
           <td>${formatarHoraExibicao(item.hora)}</td>
           <td class="col-acoes">
-            <button class="btn-editar" onclick="prepararEdicao('${item.id}', '${escapeHtml(item.nome)}', '${escapeHtml(item.marca)}', '${escapeHtml(item.modelo)}', '${item.quantidade}', '${item.quantidade_estoque}', '${item.status}', '${escapeHtml(item.responsavel)}')">Editar</button>
+            <button class="btn-editar" onclick="prepararEdicao('${item.id}', '${escapeHtml(item.nome)}', '${escapeHtml(item.marca)}', '${escapeHtml(item.modelo)}', '${item.quantidade}', '${info.estoqueTotal}', '${item.status}', '${escapeHtml(item.responsavel)}')">Editar</button>
             ${botaoRemover}
           </td>
         `;
@@ -612,13 +616,13 @@ function recalcularCriticosLocalmente() {
     const status = colunas[5].textContent.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 
     if (!totais[chaveGrupo]) {
-      totais[chaveGrupo] = { nomeOriginal: nomeOriginal, somaOcupada: 0, estoqueTotal: estoqueTotal };
+      totais[chaveGrupo] = { nomeOriginal: nomeOriginal, somaOcupada: 0, estoqueTotal: 0 };
     }
 
     if (!status.includes("disponivel")) {
       totais[chaveGrupo].somaOcupada += qtd;
     }
-    if (estoqueTotal > 0) {
+    if (estoqueTotal > totais[chaveGrupo].estoqueTotal) {
       totais[chaveGrupo].estoqueTotal = estoqueTotal;
     }
   }
@@ -721,7 +725,7 @@ function exportarExcel() {
   const visaoInv = document.getElementById("visao-inventario");
   const tabInventarioAtiva = visaoInv.style.display !== "none";
 
-  let dados = [];
+  Let dados = [];
   let nomeArquivo = "";
 
   if (tabInventarioAtiva) {
