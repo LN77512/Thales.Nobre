@@ -12,6 +12,9 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
   <style>
+    /* ==========================================================
+       1. ESTILOS GERAIS
+       ========================================================== */
     body {
       font-family: Arial, sans-serif;
       background-color: #002b5c;
@@ -20,6 +23,11 @@
       color: #333;
     }
 
+    /* ==========================================================
+       2. MODAIS (login, segurança, primeiro acesso, gráfico, exclusão)
+       Todos reutilizam .login-overlay (fundo) e .login-card (caixa).
+       O JavaScript alterna o "display" para abrir/fechar.
+       ========================================================== */
     .login-overlay {
       position: fixed;
       top: 0;
@@ -98,6 +106,7 @@
       background-color: #001a38;
     }
 
+    /* Botão "X" no canto do modal do gráfico */
     .btn-fechar-modal {
       position: absolute;
       top: 12px;
@@ -114,6 +123,9 @@
       color: #000;
     }
 
+    /* ==========================================================
+       3. APLICATIVO (cartão branco principal e cabeçalho)
+       ========================================================== */
     .app-container {
       max-width: 1400px;
       margin: 30px auto;
@@ -156,6 +168,9 @@
       font-size: 0.85em;
     }
 
+    /* ==========================================================
+       4. ABAS (Inventário / Histórico)
+       ========================================================== */
     .nav-tabs {
       display: flex;
       gap: 10px;
@@ -177,6 +192,9 @@
       color: white;
     }
 
+    /* ==========================================================
+       5. ALERTA DE ESTOQUE CRÍTICO (oculto até o JS exibir)
+       ========================================================== */
     .alerta-estoque {
       background-color: #f8d7da;
       color: #842029;
@@ -188,6 +206,9 @@
       display: none;
     }
 
+    /* ==========================================================
+       6. FORMULÁRIO DE CADASTRO / EDIÇÃO
+       ========================================================== */
     .form-container {
       display: flex;
       gap: 10px;
@@ -210,6 +231,7 @@
       box-sizing: border-box;
     }
 
+    /* O campo "Nome" é mais largo que os demais */
     #nome {
       flex: 1.6;
       min-width: 220px;
@@ -230,6 +252,9 @@
       background-color: #218838;
     }
 
+    /* ==========================================================
+       7. BARRA DE FERRAMENTAS (busca, filtro de datas, exportação)
+       ========================================================== */
     .toolbar-container {
       margin-bottom: 15px;
       display: flex;
@@ -288,6 +313,9 @@
     .btn-pdf     { background-color: #dc3545; }
     .btn-grafico { background-color: #002b5c; }
 
+    /* ==========================================================
+       8. TABELAS
+       ========================================================== */
     .table-responsive {
       overflow-x: auto;
     }
@@ -299,7 +327,8 @@
       text-align: left;
     }
 
-    th, td {
+    th,
+    td {
       padding: 12px 10px;
       border-bottom: 1px solid #ddd;
       font-size: 0.9em;
@@ -316,6 +345,7 @@
       background-color: #f1f1f1;
     }
 
+    /* Linha de item com estoque crítico (vermelho claro) */
     tr.linha-critica {
       background-color: #f8d7da;
       color: #842029;
@@ -331,6 +361,7 @@
       margin-left: 6px;
     }
 
+    /* Botões "Editar" e "Remover" de cada linha */
     .btn-editar {
       background-color: #ffc107;
       color: #333;
@@ -353,6 +384,12 @@
       font-size: 0.85em;
     }
 
+    /* ==========================================================
+       9. IMPRESSÃO / EXPORTAR PDF (A4 paisagem)
+       Esconde tudo o que não é tabela. A coluna "Ações" é
+       identificada pela classe .col-acoes (somente no inventário),
+       assim a coluna "Detalhes" do histórico continua visível.
+       ========================================================== */
     @page {
       size: A4 landscape;
       margin: 10mm;
@@ -370,8 +407,7 @@
       .nav-tabs,
       .user-badge,
       .alerta-estoque,
-      .col-acoes,
-      .paginacao {
+      .col-acoes {
         display: none !important;
       }
 
@@ -387,7 +423,8 @@
         border-collapse: collapse !important;
       }
 
-      th, td {
+      th,
+      td {
         font-size: 10px !important;
         padding: 6px 4px !important;
         border: 1px solid #444 !important;
@@ -403,11 +440,15 @@
 
 <body>
 
-  <!-- MODAL 1: LOGIN -->
+  <!-- ============================================================
+       MODAL 1: LOGIN
+       Aparece ao abrir o sistema. O botão chama tentarLoginDireto().
+       ============================================================ -->
   <div id="login-modal" class="login-overlay">
     <div class="login-card">
       <h2>THALES</h2>
       <p class="login-subtitle">INFORMATION SYSTEMS<br>Insira suas credenciais para aceder</p>
+
       <div>
         <div class="input-group">
           <label for="usr-field">Utilizador:</label>
@@ -422,11 +463,15 @@
     </div>
   </div>
 
-  <!-- MODAL 2: CÓDIGO DE SEGURANÇA -->
+  <!-- ============================================================
+       MODAL 2: CÓDIGO DE SEGURANÇA
+       Exibido apenas no primeiro acesso, antes de criar a conta.
+       ============================================================ -->
   <div id="security-code-modal" class="login-overlay" style="display: none;">
     <div class="login-card">
       <h2>SEGURANÇA</h2>
       <p class="login-subtitle">Insira o código de acesso autorizado para continuar.</p>
+
       <form onsubmit="validarCodigoSeguranca(event)">
         <div class="input-group">
           <label for="sec-code-field">Código de Acesso:</label>
@@ -437,11 +482,15 @@
     </div>
   </div>
 
-  <!-- MODAL 3: PRIMEIRO ACESSO -->
+  <!-- ============================================================
+       MODAL 3: PRIMEIRO ACESSO
+       Define o utilizador e a palavra-passe definitivos.
+       ============================================================ -->
   <div id="first-access-modal" class="login-overlay" style="display: none;">
     <div class="login-card">
       <h2>PRIMEIRO ACESSO</h2>
       <p class="login-subtitle">É necessário definir o seu novo utilizador e palavra-passe para continuar.</p>
+
       <form onsubmit="salvarNovaCredencial(event)">
         <div class="input-group">
           <label for="new-usr-field">Novo Nome de Utilizador:</label>
@@ -456,7 +505,10 @@
     </div>
   </div>
 
-  <!-- MODAL 4: GRÁFICO -->
+  <!-- ============================================================
+       MODAL 4: GRÁFICO DE RESUMO
+       O gráfico é desenhado no <canvas> por atualizarDashboard().
+       ============================================================ -->
   <div id="chart-modal" class="login-overlay" style="display: none;">
     <div class="login-card" style="max-width: 450px;">
       <button type="button" class="btn-fechar-modal" onclick="fecharModalGrafico()">&times;</button>
@@ -467,11 +519,15 @@
     </div>
   </div>
 
-  <!-- MODAL 5: CONFIRMAÇÃO DE REMOÇÃO -->
+  <!-- ============================================================
+       MODAL 5: CONFIRMAÇÃO DE REMOÇÃO
+       Pede a palavra-passe de remoção (conferida no servidor).
+       ============================================================ -->
   <div id="delete-modal" class="login-overlay" style="display: none;">
     <div class="login-card">
       <h2>CONFIRMAÇÃO</h2>
       <p id="delete-modal-subtitle" class="login-subtitle">Insira a palavra-passe para remover o item.</p>
+
       <form onsubmit="confirmarRemocaoModal(event)">
         <div class="input-group">
           <label for="delete-pwd-field">Palavra-passe:</label>
@@ -485,8 +541,13 @@
     </div>
   </div>
 
-  <!-- APLICATIVO PRINCIPAL -->
+  <!-- ============================================================
+       APLICATIVO PRINCIPAL
+       Oculto até o login ser concluído (iniciarSessao()).
+       ============================================================ -->
   <div id="app-container" class="app-container" style="display: none;">
+
+    <!-- Cabeçalho: título, utilizador logado e botão Sair -->
     <header>
       <h1>THALES Information Systems - Inventário</h1>
       <div class="user-badge">
@@ -495,17 +556,23 @@
       </div>
     </header>
 
+    <!-- Abas -->
     <div class="nav-tabs">
       <button id="tab-inv-btn" class="tab-btn active" onclick="mudarAba('inventario')">📦 Inventário</button>
       <button id="tab-hist-btn" class="tab-btn" onclick="mudarAba('historico')">📜 Histórico de Movimentações</button>
     </div>
 
+    <!-- Aviso de estoque crítico (o texto é reescrito pelo JS) -->
     <div id="alerta-estoque" class="alerta-estoque">
       ⚠️ <strong>Atenção:</strong> Existem itens com o estoque total ou disponível no limite crítico!
     </div>
 
-    <!-- VISÃO 1: INVENTÁRIO -->
+    <!-- ----------------------------------------------------------
+         VISÃO 1: INVENTÁRIO
+         ---------------------------------------------------------- -->
     <div id="visao-inventario">
+
+      <!-- Formulário de cadastro/edição (o campo oculto "item-id" indica edição) -->
       <form id="inventory-form" onsubmit="salvarItem(event)" class="form-container">
         <input type="hidden" id="item-id">
         <input type="text" id="nome" placeholder="Nome do Equipamento" required autocomplete="off">
@@ -523,6 +590,7 @@
         <button type="submit" id="btn-submit" class="btn-adicionar">Adicionar</button>
       </form>
 
+      <!-- Busca, gráfico e exportações do inventário -->
       <div class="toolbar-container">
         <input type="text" id="search-input" placeholder="🔍 Pesquisar em qualquer coluna..." autocomplete="off">
         <div class="export-buttons">
@@ -532,6 +600,7 @@
         </div>
       </div>
 
+      <!-- Tabela de inventário (linhas geradas por processarEExibirDados()) -->
       <div class="table-responsive">
         <table>
           <thead>
@@ -553,20 +622,27 @@
       </div>
     </div>
 
-    <!-- VISÃO 2: HISTÓRICO -->
+    <!-- ----------------------------------------------------------
+         VISÃO 2: HISTÓRICO DE MOVIMENTAÇÕES
+         ---------------------------------------------------------- -->
     <div id="visao-historico" style="display: none;">
+
+      <!-- Busca por texto, filtro por período e exportações -->
       <div class="toolbar-container">
         <input type="text" id="search-history-input" placeholder="🔍 Pesquisar no histórico..." autocomplete="off">
+
         <div class="date-filter-group">
           <label>De: <input type="date" id="filtro-data-inicio" onchange="filtrarHistorico()"></label>
           <label>Até: <input type="date" id="filtro-data-fim" onchange="filtrarHistorico()"></label>
         </div>
+
         <div class="export-buttons">
           <button type="button" onclick="exportarExcel()" class="btn-excel">📊 Exportar Excel (.xlsx)</button>
           <button type="button" onclick="exportarPDF()" class="btn-pdf">📄 Exportar PDF</button>
         </div>
       </div>
 
+      <!-- Tabela de histórico (linhas geradas por carregarHistorico()) -->
       <div class="table-responsive">
         <table>
           <thead>
@@ -585,7 +661,9 @@
     </div>
   </div>
 
-  <script src="script.js?v=7.0"></script>
+  <!-- Lógica do sistema. Aumente o número após "?v=" a cada alteração
+       do script para forçar os navegadores a baixar a versão nova. -->
+  <script src="script.js?v=6.1"></script>
 </body>
 
 </html>
